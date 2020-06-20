@@ -36,9 +36,9 @@ SDLKey lastkey_sym;
 SDLMod lastkey_mod;
 unsigned char lastkey_char;
 Uint8 lastmouse_but;
-Uint16 lastmouse_x, lastmouse_y;
+Sint32 lastmouse_x, lastmouse_y;
 JE_boolean mouse_pressed[3] = {false, false, false};
-Uint16 mouse_x, mouse_y;
+Sint32 mouse_x, mouse_y;
 
 Uint8 keysactive[SDLK_LAST];
 
