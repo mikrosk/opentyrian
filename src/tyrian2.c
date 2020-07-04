@@ -4558,7 +4558,7 @@ void JE_eventSystem( void )
 			}
 			else if (!superTyrian)
 			{
-				const uint lives = *player[0].lives;
+				const Uint8 lives = *player[0].lives;
 
 				if (eventRec[eventLoc-1].eventdat == 533 && (lives == 11 || (mt_rand() % 15) < lives))
 				{
@@ -4660,7 +4660,7 @@ void JE_eventSystem( void )
 	case 45: /* arcade-only enemy from other enemies */
 		if (!superTyrian)
 		{
-			const uint lives = *player[0].lives;
+			const Uint8 lives = *player[0].lives;
 
 			if (eventRec[eventLoc-1].eventdat == 533 && (lives == 11 || (mt_rand() % 15) < lives))
 			{
