@@ -11891,5 +11891,3 @@ void hq4x_32( SDL_Surface *src_surface, SDL_Surface *dst_surface )
 		dst = dst_temp + 4 * dst_pitch;
 	}
 }
-
-// kate: tab-width 4; vim: set noet:
