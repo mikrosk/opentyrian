@@ -124,6 +124,10 @@ void set_mouse_position( int x, int y )
 {
 	if (input_grab_enabled)
 	{
+		SDL_Event events[16];
+		SDL_PumpEvents();
+		while (SDL_PeepEvents(events, COUNTOF(events), SDL_GETEVENT, SDL_MOUSEMOTIONMASK) > 0)
+			;
 		SDL_WarpMouse(x * scalers[scaler].width / vga_width, y * scalers[scaler].height / vga_height);
 		mouse_x = x;
 		mouse_y = y;
