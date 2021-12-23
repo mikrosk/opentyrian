@@ -43,11 +43,8 @@ Uint32 channel_len[SFX_CHANNELS] = { 0 };
 Uint8 channel_vol[SFX_CHANNELS];
 
 int sound_init_state = false;
-int freq = 11025 * OUTPUT_QUALITY;
 
-static SDL_AudioCVT audio_cvt; // used for format conversion
-
-void audio_cb( void *userdata, unsigned char *feedme, int howmuch );
+void audio_cb( void *user_data, unsigned char *sdl_buffer, int bytes_needed );
 
 void load_song( unsigned int song_num );
 
@@ -56,26 +53,27 @@ bool init_audio( void )
 	if (audio_disabled)
 		return false;
 	
-	SDL_AudioSpec ask, got;
+	SDL_AudioSpec ask;
 	
-	ask.freq = freq;
+	ask.freq = SAMPLE_RATE;
 	ask.format = (BYTES_PER_SAMPLE == 2) ? AUDIO_S16SYS : AUDIO_S8;
 	ask.channels = 1;
-	ask.samples = 2048;
+	ask.samples = 512 * OUTPUT_QUALITY; // 46.4 ms
 	ask.callback = audio_cb;
 	
-	printf("\trequested %d Hz, %d channels, %d samples\n", ask.freq, ask.channels, ask.samples);
-	
-	if (SDL_OpenAudio(&ask, &got) == -1)
+	if (SDL_InitSubSystem(SDL_INIT_AUDIO))
 	{
 		fprintf(stderr, "error: failed to initialize SDL audio: %s\n", SDL_GetError());
 		audio_disabled = true;
 		return false;
 	}
 	
-	printf("\tobtained  %d Hz, %d channels, %d samples\n", got.freq, got.channels, got.samples);
-	
-	SDL_BuildAudioCVT(&audio_cvt, ask.format, ask.channels, ask.freq, got.format, got.channels, got.freq);
+	if (SDL_OpenAudio(&ask, NULL) == -1)
+	{
+		fprintf(stderr, "error: SDL failed to open audio device: %s\n", SDL_GetError());
+		audio_disabled = true;
+		return false;
+	}
 	
 	opl_init();
 	
@@ -84,33 +82,29 @@ bool init_audio( void )
 	return true;
 }
 
-void audio_cb( void *user_data, unsigned char *sdl_buffer, int howmuch )
+void audio_cb( void *user_data, unsigned char *sdl_buffer, int bytes_needed )
 {
 	(void)user_data;
 	
-	// prepare for conversion
-	howmuch /= audio_cvt.len_mult;
-	audio_cvt.buf = sdl_buffer;
-	audio_cvt.len = howmuch;
-	
 	static long ct = 0;
 	
-	SAMPLE_TYPE *feedme = (SAMPLE_TYPE *)sdl_buffer;
+	SAMPLE_TYPE *const feedme = (SAMPLE_TYPE *)sdl_buffer;
+	const int samples_needed = bytes_needed / BYTES_PER_SAMPLE;
 
 	if (!music_disabled && !music_stopped)
 	{
 		/* SYN: Simulate the fm synth chip */
 		SAMPLE_TYPE *music_pos = feedme;
-		long remaining = howmuch / BYTES_PER_SAMPLE;
+		long remaining = samples_needed;
 		while (remaining > 0)
 		{
 			while (ct < 0)
 			{
-				ct += freq;
+				ct += SAMPLE_RATE;
 				lds_update(); /* SYN: Do I need to use the return value for anything here? */
 			}
 			/* SYN: Okay, about the calculations below. I still don't 100% get what's going on, but...
-			- freq is samples/time as output by SDL.
+			- SAMPLE_RATE is samples/time as output by SDL.
 			- REFRESH is how often the play proc would have been called in Tyrian. Standard speed is
 			70Hz, which is the default value of 70.0f
 			- ct represents the margin between play time (representing # of samples) and tick speed of
@@ -127,8 +121,7 @@ void audio_cb( void *user_data, unsigned char *sdl_buffer, int howmuch )
 		}
 		
 		/* Reduce the music volume. */
-		int qu = howmuch / BYTES_PER_SAMPLE;
-		for (int smp = 0; smp < qu; smp++)
+		for (int smp = 0; smp < samples_needed; smp++)
 		{
 			feedme[smp] *= music_volume;
 		}
@@ -142,7 +135,7 @@ void audio_cb( void *user_data, unsigned char *sdl_buffer, int howmuch )
 			float volume = sample_volume * (channel_vol[ch] / (float)SFX_CHANNELS);
 			
 			/* SYN: Don't copy more data than is in the channel! */
-			unsigned int qu = ((unsigned)howmuch > channel_len[ch] ? channel_len[ch] : (unsigned)howmuch) / BYTES_PER_SAMPLE;
+			const unsigned int qu = ((unsigned)bytes_needed > channel_len[ch] ? channel_len[ch] : (unsigned)bytes_needed) / BYTES_PER_SAMPLE;
 			for (unsigned int smp = 0; smp < qu; smp++)
 			{
 #if (BYTES_PER_SAMPLE == 2)
@@ -165,9 +158,6 @@ void audio_cb( void *user_data, unsigned char *sdl_buffer, int howmuch )
 			}
 		}
 	}
-	
-	// do conversion
-	SDL_ConvertAudio(&audio_cvt);
 }
 
 void deinit_audio( void )
@@ -178,6 +168,8 @@ void deinit_audio( void )
 	SDL_PauseAudio(1); // pause
 	
 	SDL_CloseAudio();
+	
+	SDL_QuitSubSystem(SDL_INIT_AUDIO);
 	
 	for (unsigned int i = 0; i < SFX_CHANNELS; i++)
 	{
