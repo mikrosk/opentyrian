@@ -19,6 +19,7 @@
 #include "keyboard.h"
 
 #include "joystick.h"
+#include "mouse.h"
 #include "network.h"
 #include "opentyr.h"
 #include "video.h"
@@ -153,6 +154,9 @@ void service_SDL_events( JE_boolean clear_new )
 			case SDL_MOUSEMOTION:
 				mouse_x = ev.motion.x * vga_width / scalers[scaler].width;
 				mouse_y = ev.motion.y * vga_height / scalers[scaler].height;
+
+				if (ev.motion.xrel != 0 || ev.motion.yrel != 0)
+					mouseInactive = false;
 				break;
 			case SDL_KEYDOWN:
 				if (ev.key.keysym.mod & KMOD_CTRL)
@@ -209,6 +213,8 @@ void service_SDL_events( JE_boolean clear_new )
 				lastkey_mod = ev.key.keysym.mod;
 				lastkey_char = ev.key.keysym.unicode;
 				keydown = true;
+
+				mouseInactive = true;
 				return;
 			case SDL_KEYUP:
 				keysactive[ev.key.keysym.sym] = 0;
@@ -220,6 +226,9 @@ void service_SDL_events( JE_boolean clear_new )
 					input_grab(true);
 					break;
 				}
+
+				mouseInactive = false;
+
 				// fall through
 			case SDL_MOUSEBUTTONUP:
 				if (ev.type == SDL_MOUSEBUTTONDOWN)
