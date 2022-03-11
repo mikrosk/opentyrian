@@ -41,13 +41,11 @@ Sint32 lastmouse_x, lastmouse_y;
 JE_boolean mouse_pressed[3] = {false, false, false};
 Sint32 mouse_x, mouse_y;
 
+bool windowHasFocus = true;
+
 Uint8 keysactive[SDLK_LAST];
 
-#ifdef NDEBUG
-bool input_grab_enabled = true;
-#else
-bool input_grab_enabled = false;
-#endif
+static bool mouseRelativeEnabled;
 
 
 void flush_events_buffer( void )
@@ -97,20 +95,35 @@ void init_keyboard( void )
 	keydown = mousedown = false;
 
 	SDL_EnableUNICODE(1);
+
+	SDL_ShowCursor(SDL_DISABLE);
 }
 
-void input_grab( bool enable )
+static void mouseWarpToCenter( void )
 {
-#if defined(TARGET_GP2X) || defined(TARGET_DINGUX)
-	enable = true;
-#endif
-	
-	input_grab_enabled = enable || fullscreen_enabled;
-	
-	SDL_ShowCursor(input_grab_enabled ? SDL_DISABLE : SDL_ENABLE);
+	const int x = 159, y = 100;
+
+	SDL_Event events[16];
+	SDL_PumpEvents();
+	while (SDL_PeepEvents(events, COUNTOF(events), SDL_GETEVENT, SDL_MOUSEMOTIONMASK) > 0)
+		;
+	SDL_WarpMouse(x * scalers[scaler].width / vga_width, y * scalers[scaler].height / vga_height);
+	mouse_x = x;
+	mouse_y = y;
+}
+
+void mouseSetRelative(bool enable)
+{
+	const bool grab = enable && windowHasFocus;
+
 #ifdef NDEBUG
-	SDL_WM_GrabInput(input_grab_enabled ? SDL_GRAB_ON : SDL_GRAB_OFF);
+	SDL_WM_GrabInput(grab ? SDL_GRAB_ON : SDL_GRAB_OFF);
 #endif
+
+	mouseRelativeEnabled = enable;
+
+	if (grab)
+		mouseWarpToCenter();
 }
 
 JE_word JE_mousePosition( JE_word *mouseX, JE_word *mouseY )
@@ -121,17 +134,23 @@ JE_word JE_mousePosition( JE_word *mouseX, JE_word *mouseY )
 	return mousedown ? lastmouse_but : 0;
 }
 
-void set_mouse_position( int x, int y )
+// SDL1 has no relative mouse mode, so the pointer is warped back to the
+// screen center after every read and the offset from it is reported.
+void mouseGetRelativePosition(Sint32 *const out_x, Sint32 *const out_y)
 {
-	if (input_grab_enabled)
+	service_SDL_events(false);
+
+	if (mouseRelativeEnabled && windowHasFocus)
 	{
-		SDL_Event events[16];
-		SDL_PumpEvents();
-		while (SDL_PeepEvents(events, COUNTOF(events), SDL_GETEVENT, SDL_MOUSEMOTIONMASK) > 0)
-			;
-		SDL_WarpMouse(x * scalers[scaler].width / vga_width, y * scalers[scaler].height / vga_height);
-		mouse_x = x;
-		mouse_y = y;
+		*out_x = mouse_x - 159;
+		*out_y = mouse_y - 100;
+
+		mouseWarpToCenter();
+	}
+	else
+	{
+		*out_x = 0;
+		*out_y = 0;
 	}
 }
 
@@ -147,28 +166,26 @@ void service_SDL_events( JE_boolean clear_new )
 		switch (ev.type)
 		{
 			case SDL_ACTIVEEVENT:
-				if (ev.active.state == SDL_APPINPUTFOCUS && !ev.active.gain)
-					input_grab(false);
+				if (ev.active.state & SDL_APPINPUTFOCUS)
+				{
+					windowHasFocus = ev.active.gain;
+
+					mouseSetRelative(mouseRelativeEnabled);
+				}
 				break;
 			
 			case SDL_MOUSEMOTION:
 				mouse_x = ev.motion.x * vga_width / scalers[scaler].width;
 				mouse_y = ev.motion.y * vga_height / scalers[scaler].height;
 
+				// Show system mouse pointer if outside screen.
+				SDL_ShowCursor(mouse_x < 0 || mouse_x >= vga_width ||
+				               mouse_y < 0 || mouse_y >= vga_height ? SDL_ENABLE : SDL_DISABLE);
+
 				if (ev.motion.xrel != 0 || ev.motion.yrel != 0)
 					mouseInactive = false;
 				break;
 			case SDL_KEYDOWN:
-				if (ev.key.keysym.mod & KMOD_CTRL)
-				{
-					/* <ctrl><f10> toggle input grab */
-					if (ev.key.keysym.sym == SDLK_F10)
-					{
-						input_grab(!input_grab_enabled);
-						break;
-					}
-				}
-				
 				if (ev.key.keysym.mod & KMOD_ALT)
 				{
 					/* <alt><enter> toggle fullscreen */
@@ -183,7 +200,7 @@ void service_SDL_events( JE_boolean clear_new )
 						break;
 					}
 					
-					/* <alt><tab> disable input grab and fullscreen */
+					/* <alt><tab> disable fullscreen */
 					if (ev.key.keysym.sym == SDLK_TAB)
 					{
 						if (!init_scaler(scaler, false) &&             // try windowed
@@ -192,8 +209,6 @@ void service_SDL_events( JE_boolean clear_new )
 						{
 							exit(EXIT_FAILURE);
 						}
-						
-						input_grab(false);
 						break;
 					}
 				}
@@ -213,12 +228,6 @@ void service_SDL_events( JE_boolean clear_new )
 				keydown = false;
 				return;
 			case SDL_MOUSEBUTTONDOWN:
-				if (!input_grab_enabled)
-				{
-					input_grab(true);
-					break;
-				}
-
 				mouseInactive = false;
 
 				// fall through

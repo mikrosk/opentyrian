@@ -143,8 +143,6 @@ bool init_scaler( unsigned int new_scaler, bool fullscreen )
 		return false;
 	}
 	
-	input_grab(input_grab_enabled);
-	
 	JE_showVGA();
 	
 	return true;
