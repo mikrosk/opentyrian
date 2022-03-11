@@ -586,6 +586,7 @@ void blit_sprite2_clip( SDL_Surface *surface, int x, int y, Sprite2_array sprite
 		else
 		{
 			data += fill_count;
+			x += fill_count;
 		}
 	}
 }
@@ -735,6 +736,7 @@ void blit_sprite2_filter_clip( SDL_Surface *surface, int x, int y, Sprite2_array
 		else
 		{
 			data += fill_count;
+			x += fill_count;
 		}
 	}
 }
