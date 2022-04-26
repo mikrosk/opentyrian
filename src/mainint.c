@@ -3349,6 +3349,9 @@ void JE_pauseGame(void)
 	JE_boolean done = false;
 	JE_word mouseX, mouseY;
 
+	SDL_Surface *temp_surface = VGAScreen;
+	VGAScreen = VGAScreenSeg; /* side-effect of game_screen */
+
 	//tempScreenSeg = VGAScreenSeg; // sega000
 	if (!superPause)
 	{
@@ -3439,6 +3442,8 @@ void JE_pauseGame(void)
 	set_volume(tyrMusicVolume, fxVolume);
 
 	//skipStarShowVGA = true;
+
+	VGAScreen = temp_surface; /* side-effect of game_screen */
 
 	mouseSetRelative(true);
 }
