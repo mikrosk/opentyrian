@@ -35,7 +35,7 @@ SDL_Surface *game_screen;
 
 static ScalerFunction scaler_function;
 
-void init_video( void )
+void init_video(void)
 {
 	if (SDL_WasInit(SDL_INIT_VIDEO))
 		return;
@@ -63,7 +63,7 @@ void init_video( void )
 	}
 }
 
-int can_init_scaler( unsigned int new_scaler, bool fullscreen )
+int can_init_scaler(unsigned int new_scaler, bool fullscreen)
 {
 	if (new_scaler >= scalers_count)
 		return false;
@@ -94,7 +94,7 @@ int can_init_scaler( unsigned int new_scaler, bool fullscreen )
 	return 0;
 }
 
-bool init_scaler( unsigned int new_scaler, bool fullscreen )
+bool init_scaler(unsigned int new_scaler, bool fullscreen)
 {
 	int w = scalers[new_scaler].width,
 	    h = scalers[new_scaler].height;
@@ -148,7 +148,7 @@ bool init_scaler( unsigned int new_scaler, bool fullscreen )
 	return true;
 }
 
-bool can_init_any_scaler( bool fullscreen )
+bool can_init_any_scaler(bool fullscreen)
 {
 	for (int i = scalers_count - 1; i >= 0; --i)
 		if (can_init_scaler(i, fullscreen) != 0)
@@ -157,7 +157,7 @@ bool can_init_any_scaler( bool fullscreen )
 	return false;
 }
 
-bool init_any_scaler( bool fullscreen )
+bool init_any_scaler(bool fullscreen)
 {
 	// attempts all scalers from last to first
 	for (int i = scalers_count - 1; i >= 0; --i)
@@ -167,7 +167,7 @@ bool init_any_scaler( bool fullscreen )
 	return false;
 }
 
-void deinit_video( void )
+void deinit_video(void)
 {
 	SDL_FreeSurface(VGAScreenSeg);
 	SDL_FreeSurface(VGAScreen2);
@@ -176,13 +176,13 @@ void deinit_video( void )
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
-void JE_clr256( SDL_Surface * screen)
+void JE_clr256(SDL_Surface *screen)
 {
 	memset(screen->pixels, 0, screen->pitch * screen->h);
 }
-void JE_showVGA( void ) { scale_and_flip(VGAScreen); }
+void JE_showVGA(void) { scale_and_flip(VGAScreen); }
 
-void scale_and_flip( SDL_Surface *src_surface )
+void scale_and_flip(SDL_Surface *src_surface)
 {
 	assert(src_surface->format->BitsPerPixel == 8);
 	

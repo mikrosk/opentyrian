@@ -23,7 +23,7 @@
 
 #include "SDL.h"
 
-typedef void (*ScalerFunction)( SDL_Surface *dst, SDL_Surface *src );
+typedef void (*ScalerFunction)(SDL_Surface *dst, SDL_Surface *src);
 
 struct Scalers
 {
@@ -36,7 +36,7 @@ extern uint scaler;
 extern const struct Scalers scalers[];
 extern const uint scalers_count;
 
-void set_scaler_by_name( const char *name );
+void set_scaler_by_name(const char *name);
 
 #endif /* VIDEO_SCALE_H */
 

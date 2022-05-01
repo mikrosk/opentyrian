@@ -66,12 +66,12 @@ FILE * InFile;
 
 
 /*** Function decs ***/
-int JE_playRunSkipDump( Uint8 *, unsigned int );
-void JE_closeAnim( void );
-int JE_loadAnim( const char * );
-int JE_renderFrame( unsigned int );
-int JE_findPage ( unsigned int );
-int JE_loadPage( unsigned int );
+int JE_playRunSkipDump(Uint8 *, unsigned int);
+void JE_closeAnim(void);
+int JE_loadAnim(const char *);
+int JE_renderFrame(unsigned int);
+int JE_findPage (unsigned int);
+int JE_loadPage(unsigned int);
 
 /*** Implementation ***/
 
@@ -80,7 +80,7 @@ int JE_loadPage( unsigned int );
  *
  * Returns  0 on success or nonzero on failure (bad data)
  */
-int JE_loadPage( unsigned int pagenumber )
+int JE_loadPage(unsigned int pagenumber)
 {
 	unsigned int i, pageSize;
 
@@ -121,7 +121,7 @@ int JE_loadPage( unsigned int pagenumber )
 	return(0);
 }
 
-int JE_findPage( unsigned int framenumber )
+int JE_findPage(unsigned int framenumber)
 {
 	unsigned int i;
 
@@ -138,7 +138,7 @@ int JE_findPage( unsigned int framenumber )
 	return(-1); /* Did not find */
 }
 
-int JE_renderFrame( unsigned int framenumber )
+int JE_renderFrame(unsigned int framenumber)
 {
 	unsigned int i, offset, destframe;
 
@@ -154,7 +154,7 @@ int JE_renderFrame( unsigned int framenumber )
 	return (JE_playRunSkipDump(CurrentPageBuffer + offset + 4, CurrentPageRecordSizes[destframe] - 4));
 }
 
-void JE_playAnim( const char *animfile, JE_byte startingframe, JE_byte speed )
+void JE_playAnim(const char *animfile, JE_byte startingframe, JE_byte speed)
 {
 	unsigned int i;
 	int pageNum;
@@ -208,7 +208,7 @@ void JE_playAnim( const char *animfile, JE_byte startingframe, JE_byte speed )
 /* loadAnim opens the file and loads data from it into the header structs.
  * It should take care to clean up after itself should an error occur.
  */
-int JE_loadAnim( const char *filename )
+int JE_loadAnim(const char *filename)
 {
 	unsigned int i;
 	long fileSize;
@@ -289,7 +289,7 @@ int JE_loadAnim( const char *filename )
 	return(0);
 }
 
-void JE_closeAnim( void )
+void JE_closeAnim(void)
 {
 	fclose(InFile);
 }
@@ -306,7 +306,7 @@ void JE_closeAnim( void )
  * returns 0 on success or 1 if decompressing failed.  Failure to decompress
  * indicates a broken or malicious file; playback should terminate.
  */
-int JE_playRunSkipDump( Uint8 *incomingBuffer, unsigned int IncomingBufferLength )
+int JE_playRunSkipDump(Uint8 *incomingBuffer, unsigned int IncomingBufferLength)
 {
 	sizebuf_t Buffer_IN, Buffer_OUT;
 	sizebuf_t * pBuffer_IN = &Buffer_IN, * pBuffer_OUT = &Buffer_OUT;

@@ -48,14 +48,14 @@ Uint8 keysactive[SDLK_LAST];
 static bool mouseRelativeEnabled;
 
 
-void flush_events_buffer( void )
+void flush_events_buffer(void)
 {
 	SDL_Event ev;
 
 	while (SDL_PollEvent(&ev));
 }
 
-void wait_input( JE_boolean keyboard, JE_boolean mouse, JE_boolean joystick )
+void wait_input(JE_boolean keyboard, JE_boolean mouse, JE_boolean joystick)
 {
 	service_SDL_events(false);
 	while (!((keyboard && keydown) || (mouse && mousedown) || (joystick && joydown)))
@@ -71,7 +71,7 @@ void wait_input( JE_boolean keyboard, JE_boolean mouse, JE_boolean joystick )
 	}
 }
 
-void wait_noinput( JE_boolean keyboard, JE_boolean mouse, JE_boolean joystick )
+void wait_noinput(JE_boolean keyboard, JE_boolean mouse, JE_boolean joystick)
 {
 	service_SDL_events(false);
 	while ((keyboard && keydown) || (mouse && mousedown) || (joystick && joydown))
@@ -87,7 +87,7 @@ void wait_noinput( JE_boolean keyboard, JE_boolean mouse, JE_boolean joystick )
 	}
 }
 
-void init_keyboard( void )
+void init_keyboard(void)
 {
 	SDL_EnableKeyRepeat(500, 60);
 
@@ -99,7 +99,7 @@ void init_keyboard( void )
 	SDL_ShowCursor(SDL_DISABLE);
 }
 
-static void mouseWarpToCenter( void )
+static void mouseWarpToCenter(void)
 {
 	const int x = 159, y = 100;
 
@@ -126,7 +126,7 @@ void mouseSetRelative(bool enable)
 		mouseWarpToCenter();
 }
 
-JE_word JE_mousePosition( JE_word *mouseX, JE_word *mouseY )
+JE_word JE_mousePosition(JE_word *mouseX, JE_word *mouseY)
 {
 	service_SDL_events(false);
 	*mouseX = mouse_x;
@@ -154,7 +154,7 @@ void mouseGetRelativePosition(Sint32 *const out_x, Sint32 *const out_y)
 	}
 }
 
-void service_SDL_events( JE_boolean clear_new )
+void service_SDL_events(JE_boolean clear_new)
 {
 	SDL_Event ev;
 	
@@ -262,7 +262,7 @@ void service_SDL_events( JE_boolean clear_new )
 	}
 }
 
-void JE_clearKeyboard( void )
+void JE_clearKeyboard(void)
 {
 	// /!\ Doesn't seems important. I think. D:
 }

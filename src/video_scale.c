@@ -26,18 +26,18 @@
 
 #include <assert.h>
 
-static void no_scale( SDL_Surface *src_surface, SDL_Surface *dst_surface );
-static void nn_32( SDL_Surface *src_surface, SDL_Surface *dst_surface );
-static void nn_16( SDL_Surface *src_surface, SDL_Surface *dst_surface );
+static void no_scale(SDL_Surface *src_surface, SDL_Surface *dst_surface);
+static void nn_32(SDL_Surface *src_surface, SDL_Surface *dst_surface);
+static void nn_16(SDL_Surface *src_surface, SDL_Surface *dst_surface);
 
-static void scale2x_32( SDL_Surface *src_surface, SDL_Surface *dst_surface );
-static void scale2x_16( SDL_Surface *src_surface, SDL_Surface *dst_surface );
-static void scale3x_32( SDL_Surface *src_surface, SDL_Surface *dst_surface );
-static void scale3x_16( SDL_Surface *src_surface, SDL_Surface *dst_surface );
+static void scale2x_32(SDL_Surface *src_surface, SDL_Surface *dst_surface);
+static void scale2x_16(SDL_Surface *src_surface, SDL_Surface *dst_surface);
+static void scale3x_32(SDL_Surface *src_surface, SDL_Surface *dst_surface);
+static void scale3x_16(SDL_Surface *src_surface, SDL_Surface *dst_surface);
 
-void hq2x_32( SDL_Surface *src_surface, SDL_Surface *dst_surface );
-void hq3x_32( SDL_Surface *src_surface, SDL_Surface *dst_surface );
-void hq4x_32( SDL_Surface *src_surface, SDL_Surface *dst_surface );
+void hq2x_32(SDL_Surface *src_surface, SDL_Surface *dst_surface);
+void hq3x_32(SDL_Surface *src_surface, SDL_Surface *dst_surface);
+void hq4x_32(SDL_Surface *src_surface, SDL_Surface *dst_surface);
 
 uint scaler;
 
@@ -59,7 +59,7 @@ const struct Scalers scalers[] =
 };
 const uint scalers_count = COUNTOF(scalers);
 
-void set_scaler_by_name( const char *name )
+void set_scaler_by_name(const char *name)
 {
 	for (uint i = 0; i < scalers_count; ++i)
 	{
@@ -75,7 +75,7 @@ void set_scaler_by_name( const char *name )
 #define VGA_CENTERED
 #endif
 
-void no_scale( SDL_Surface *src_surface, SDL_Surface *dst_surface )
+void no_scale(SDL_Surface *src_surface, SDL_Surface *dst_surface)
 {
 	Uint8 *src = src_surface->pixels,
 	      *dst = dst_surface->pixels;
@@ -95,7 +95,7 @@ void no_scale( SDL_Surface *src_surface, SDL_Surface *dst_surface )
 }
 
 
-void nn_32( SDL_Surface *src_surface, SDL_Surface *dst_surface )
+void nn_32(SDL_Surface *src_surface, SDL_Surface *dst_surface)
 {
 	Uint8 *src = src_surface->pixels, *src_temp,
 	      *dst = dst_surface->pixels, *dst_temp;
@@ -144,7 +144,7 @@ void nn_32( SDL_Surface *src_surface, SDL_Surface *dst_surface )
 #endif
 }
 
-void nn_16( SDL_Surface *src_surface, SDL_Surface *dst_surface )
+void nn_16(SDL_Surface *src_surface, SDL_Surface *dst_surface)
 {
 	Uint8 *src = src_surface->pixels, *src_temp,
 	      *dst = dst_surface->pixels, *dst_temp;
@@ -194,7 +194,7 @@ void nn_16( SDL_Surface *src_surface, SDL_Surface *dst_surface )
 }
 
 
-void scale2x_32( SDL_Surface *src_surface, SDL_Surface *dst_surface )
+void scale2x_32(SDL_Surface *src_surface, SDL_Surface *dst_surface)
 {
 	Uint8 *src = src_surface->pixels, *src_temp,
 	      *dst = dst_surface->pixels, *dst_temp;
@@ -247,7 +247,7 @@ void scale2x_32( SDL_Surface *src_surface, SDL_Surface *dst_surface )
 	}
 }
 
-void scale2x_16( SDL_Surface *src_surface, SDL_Surface *dst_surface )
+void scale2x_16(SDL_Surface *src_surface, SDL_Surface *dst_surface)
 {
 	Uint8 *src = src_surface->pixels, *src_temp,
 	      *dst = dst_surface->pixels, *dst_temp;
@@ -301,7 +301,7 @@ void scale2x_16( SDL_Surface *src_surface, SDL_Surface *dst_surface )
 }
 
 
-void scale3x_32( SDL_Surface *src_surface, SDL_Surface *dst_surface )
+void scale3x_32(SDL_Surface *src_surface, SDL_Surface *dst_surface)
 {
 	Uint8 *src = src_surface->pixels, *src_temp,
 	      *dst = dst_surface->pixels, *dst_temp;
@@ -368,7 +368,7 @@ void scale3x_32( SDL_Surface *src_surface, SDL_Surface *dst_surface )
 	}
 }
 
-void scale3x_16( SDL_Surface *src_surface, SDL_Surface *dst_surface )
+void scale3x_16(SDL_Surface *src_surface, SDL_Surface *dst_surface)
 {
 	Uint8 *src = src_surface->pixels, *src_temp,
 	      *dst = dst_surface->pixels, *dst_temp;

@@ -83,7 +83,7 @@ static const char *getScalerPickerItem(size_t i, char *buffer, size_t bufferSize
 	return scalers[i].name;
 }
 
-void setupMenu( void )
+void setupMenu(void)
 {
 	typedef enum
 	{
@@ -717,7 +717,7 @@ void setupMenu( void )
 	}
 }
 
-int main( int argc, char *argv[] )
+int main(int argc, char *argv[])
 {
 	mt_srand(time(NULL));
 

@@ -60,7 +60,7 @@ static JE_shortint speedChange;
 static JE_byte pColor;
 
 
-void JE_starlib_main( void )
+void JE_starlib_main(void)
 {
 	int off;
 	JE_word i;
@@ -261,12 +261,12 @@ void JE_starlib_main( void )
 	nspVarInc += nspVarVarInc;
 }
 
-void JE_wackyCol( void )
+void JE_wackyCol(void)
 {
 	/* YKS: Does nothing */
 }
 
-void JE_starlib_init( void )
+void JE_starlib_init(void)
 {
 	static JE_boolean initialized = false;
 
@@ -288,7 +288,7 @@ void JE_starlib_init( void )
 	}
 }
 
-void JE_resetValues( void )
+void JE_resetValues(void)
 {
 	nsp2 = 1;
 	nspVar2Inc = 1;
@@ -300,7 +300,7 @@ void JE_resetValues( void )
 	speedChange = 0;
 }
 
-void JE_changeSetup( JE_byte setupType )
+void JE_changeSetup(JE_byte setupType)
 {
 	stepCounter = 0;
 	changeTime = (mt_rand() % 1000);
@@ -322,7 +322,7 @@ void JE_changeSetup( JE_byte setupType )
 	}
 }
 
-void JE_newStar( void )
+void JE_newStar(void)
 {
 	if (setup == 0)
 	{
