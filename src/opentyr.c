@@ -83,7 +83,7 @@ static const char *getScalerPickerItem(size_t i, char *buffer, size_t bufferSize
 	return scalers[i].name;
 }
 
-void openTyrianMenu( void )
+void setupMenu( void )
 {
 	typedef enum
 	{
@@ -102,7 +102,7 @@ void openTyrianMenu( void )
 	typedef enum
 	{
 		MENU_NONE = 0,
-		MENU_OPENTYRIAN,
+		MENU_SETUP,
 		MENU_GRAPHICS,
 		MENU_SOUND,
 	} MenuId;
@@ -123,8 +123,8 @@ void openTyrianMenu( void )
 	} Menu;
 
 	static const Menu menus[] = {
-		[MENU_OPENTYRIAN] = {
-			.header = "OpenTyrian",
+		[MENU_SETUP] = {
+			.header = "Setup",
 			.items = {
 				{ MENU_ITEM_GRAPHICS, "Graphics...", "Change the graphics settings." },
 				{ MENU_ITEM_SOUND, "Sound...", "Change the sound settings." },
@@ -163,7 +163,7 @@ void openTyrianMenu( void )
 
 	MenuId menuParents[COUNTOF(menus)] = { MENU_NONE };
 	size_t selectedMenuItemIndexes[COUNTOF(menus)] = { 0 };
-	MenuId currentMenu = MENU_OPENTYRIAN;
+	MenuId currentMenu = MENU_SETUP;
 	MenuItemId currentPicker = MENU_ITEM_NONE;
 	size_t pickerSelectedIndex = 0;
 
