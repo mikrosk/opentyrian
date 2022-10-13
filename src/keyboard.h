@@ -54,4 +54,3 @@ void sleep_game(void);
 void JE_clearKeyboard(void);
 
 #endif /* KEYBOARD_H */
-

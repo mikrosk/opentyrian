@@ -46,4 +46,3 @@ void JE_showVGA(void);
 void scale_and_flip(SDL_Surface *);
 
 #endif /* VIDEO_H */
-

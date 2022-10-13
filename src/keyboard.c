@@ -266,4 +266,3 @@ void JE_clearKeyboard(void)
 {
 	// /!\ Doesn't seems important. I think. D:
 }
-

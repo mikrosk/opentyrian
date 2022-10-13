@@ -617,8 +617,7 @@ bool detect_joystick_assignment(int j, Joystick_assignment *assignment)
 		JE_showVGA();
 		
 		wait_delay();
-	}
-	while (!detected && !newkey && !newmouse);
+	} while (!detected && !newkey && !newmouse);
 	
 	free(axis);
 	free(button);
@@ -650,4 +649,3 @@ bool joystick_assignment_cmp(const Joystick_assignment *a, const Joystick_assign
 	
 	return false;
 }
-

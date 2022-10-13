@@ -160,8 +160,7 @@ void JE_outCharGlow(JE_word x, JE_word y, const char *s)
 						JE_updateWarning(VGAScreen);
 
 					SDL_Delay(16);
-				}
-				while (!(delaycount() == 0 || ESCPressed));
+				} while (!(delaycount() == 0 || ESCPressed));
 
 				JE_showVGA();
 			}
@@ -1395,7 +1394,9 @@ void JE_doInGameSetup(void)
 			{
 				network_prepare(PACKET_WAITING);
 				network_send(4);  // PACKET_WAITING
-			} else {
+			}
+			else
+			{
 				network_prepare(PACKET_GAME_QUIT);
 				network_send(4);  // PACKET_GAMEQUIT
 			}
@@ -1427,7 +1428,9 @@ void JE_doInGameSetup(void)
 					{
 						network_check();
 						break;
-					} else if (SDLNet_Read16(&packet_in[0]->data[0]) == PACKET_GAME_QUIT) {
+					}
+					else if (SDLNet_Read16(&packet_in[0]->data[0]) == PACKET_GAME_QUIT)
+					{
 						reallyEndLevel = true;
 						playerEndLevel = true;
 
@@ -1441,7 +1444,9 @@ void JE_doInGameSetup(void)
 
 				SDL_Delay(16);
 			}
-		} else {
+		}
+		else
+		{
 			/*
 			JE_barShade(3, 160, 257, 180); /-*Help Box*-/
 			JE_barShade(5, 162, 255, 178);
@@ -2173,8 +2178,7 @@ void JE_highScoreCheck(void)
 								break;
 						}
 					}
-				}
-				while (!quit);
+				} while (!quit);
 
 				if (!cancel)
 				{
@@ -2422,7 +2426,9 @@ void JE_SFCodes(JE_byte playerNum_, JE_integer PX_, JE_integer PY_, JE_integer m
 			{
 				temp = 9;
 				temp2 = 1;
-			} else {
+			}
+			else
+			{
 				temp2 = 0;
 				temp = 99;
 			}
@@ -2444,7 +2450,9 @@ void JE_SFCodes(JE_byte playerNum_, JE_integer PX_, JE_integer PY_, JE_integer m
 				{
 					// mark twiddles as cancelled/finished
 					SFCurrentCode[playerNum_-1][temp2] = 0;
-				} else {
+				}
+				else
+				{
 					// get next combo key
 					temp4 = keyboardCombos[temp5-1][SFCurrentCode[playerNum_-1][temp2]];
 
@@ -2459,7 +2467,9 @@ void JE_SFCodes(JE_byte playerNum_, JE_integer PX_, JE_integer PY_, JE_integer m
 							SFCurrentCode[playerNum_-1][temp2] = 0;
 							SFExecuted[playerNum_-1] = temp4 - 100;
 						}
-					} else {
+					}
+					else
+					{
 						if ((temp != 9) &&
 						    (temp4 - 1) % 4 != (temp - 1) % 4 &&
 						    (SFCurrentCode[playerNum_-1][temp2] == 0 ||
@@ -2604,7 +2614,7 @@ void JE_playCredits(void)
 			shipx = 900;
 			shipxwait = 1;
 		}
-      	int tmp_unknown = shipxc * shipxc;
+		int tmp_unknown = shipxc * shipxc;
 		if (450 + tmp_unknown < 0 || 450 + tmp_unknown > 900)
 		{
 			if (shipxca < 0 && shipxc < 0)
@@ -2815,7 +2825,9 @@ void JE_endLevelAni(void)
 	{
 		frameCountMax = 6;
 		temp = 1;
-	} else {
+	}
+	else
+	{
 		temp = 0;
 	}
 	temp2 = twoPlayerMode ? 150 : 160;
@@ -2939,8 +2951,7 @@ void JE_operation(JE_byte slot)
 						break;
 				}
 
-			}
-			while (!newkey && !newmouse);
+			} while (!newkey && !newmouse);
 
 			if (mouseButton > 0)
 			{
@@ -3193,7 +3204,9 @@ void JE_mainKeyboardInput(void)
 		if (isNetworkGame)
 		{
 			helpRequest = true;
-		} else {
+		}
+		else
+		{
 			JE_inGameHelp();
 			skipStarShowVGA = true;
 		}
@@ -3263,13 +3276,15 @@ void JE_mainKeyboardInput(void)
 	}
 
 	/* {CHEAT-SKIP LEVEL} */
-	if (keysactive[SDLK_F2] && keysactive[SDLK_F6] && (keysactive[SDLK_F7] || keysactive[SDLK_F8]) && !keysactive[SDLK_F9]
-	    && !superTyrian && superArcadeMode == SA_NONE)
+	if (keysactive[SDLK_F2] && keysactive[SDLK_F6] && (keysactive[SDLK_F7] || keysactive[SDLK_F8]) && !keysactive[SDLK_F9] &&
+	    !superTyrian && superArcadeMode == SA_NONE)
 	{
 		if (isNetworkGame)
 		{
 			skipLevelRequest = true;
-		} else {
+		}
+		else
+		{
 			levelTimer = true;
 			levelTimerCountdown = 0;
 			endLevel = true;
@@ -3287,25 +3302,18 @@ void JE_mainKeyboardInput(void)
 	{
 		/* toggle screenshot pause */
 		if (keysactive[SDLK_NUMLOCK])
-		{
 			superPause = !superPause;
-		}
 
 		/* {SMOOTHIES} */
 		if (keysactive[SDLK_F12] && keysactive[SDLK_SCROLLOCK])
 		{
 			for (temp = SDLK_2; temp <= SDLK_9; temp++)
-			{
 				if (keysactive[temp])
-				{
 					smoothies[temp-SDLK_2] = !smoothies[temp-SDLK_2];
-				}
-			}
 			if (keysactive[SDLK_0])
-			{
 				smoothies[8] = !smoothies[8];
-			}
-		} else
+		}
+		else
 
 		/* {CYCLE THROUGH FILTER COLORS} */
 		if (keysactive[SDLK_MINUS])
@@ -3313,32 +3321,29 @@ void JE_mainKeyboardInput(void)
 			if (levelFilter == -99)
 			{
 				levelFilter = 0;
-			} else {
+			}
+			else
+			{
 				levelFilter++;
 				if (levelFilter == 16)
-				{
 					levelFilter = -99;
-				}
 			}
-		} else
+		}
+		else
 
 		/* {HYPER-SPEED} */
 		if (keysactive[SDLK_1])
 		{
 			fastPlay++;
 			if (fastPlay > 2)
-			{
 				fastPlay = 0;
-			}
 			keysactive[SDLK_1] = false;
 			JE_setNewGameSpeed();
 		}
 
 		/* {IN-GAME RANDOM MUSIC SELECTION} */
 		if (keysactive[SDLK_SCROLLOCK])
-		{
 			play_song(mt_rand() % MUSIC_NUM);
-		}
 	}
 }
 
@@ -3396,8 +3401,8 @@ void JE_pauseGame(void)
 		push_joysticks_as_keyboard();
 		service_SDL_events(true);
 
-		if ((newkey && lastkey_sym != SDLK_LCTRL && lastkey_sym != SDLK_RCTRL && lastkey_sym != SDLK_LALT && lastkey_sym != SDLK_RALT)
-		    || JE_mousePosition(&mouseX, &mouseY) > 0)
+		if ((newkey && lastkey_sym != SDLK_LCTRL && lastkey_sym != SDLK_RCTRL && lastkey_sym != SDLK_LALT && lastkey_sym != SDLK_RALT) ||
+		    JE_mousePosition(&mouseX, &mouseY) > 0)
 		{
 #ifdef WITH_NETWORK
 			if (isNetworkGame)
@@ -3591,7 +3596,6 @@ redo:
 				++(*player[0].lives);
 		}
 	}
-
 
 	if (!this_player->is_alive)
 	{
@@ -3854,9 +3858,9 @@ redo:
 
 			/*Linking Routines*/
 
-			if (twoPlayerMode && !twoPlayerLinked && this_player->x == *mouseX_ && this_player->y == *mouseY_
-			    && abs(player[0].x - player[1].x) < 8 && abs(player[0].y - player[1].y) < 8
-			    && player[0].is_alive && player[1].is_alive && !galagaMode)
+			if (twoPlayerMode && !twoPlayerLinked && this_player->x == *mouseX_ && this_player->y == *mouseY_ &&
+			    abs(player[0].x - player[1].x) < 8 && abs(player[0].y - player[1].y) < 8 &&
+			    player[0].is_alive && player[1].is_alive && !galagaMode)
 			{
 				twoPlayerLinked = true;
 			}
@@ -3864,8 +3868,8 @@ redo:
 			if (playerNum_ == 1 && (button[3-1] || button[2-1]) && !galagaMode)
 				twoPlayerLinked = false;
 
-			if (twoPlayerMode && twoPlayerLinked && playerNum_ == 2
-			    && (this_player->x != *mouseX_ || this_player->y != *mouseY_))
+			if (twoPlayerMode && twoPlayerLinked && playerNum_ == 2 &&
+			    (this_player->x != *mouseX_ || this_player->y != *mouseY_))
 			{
 				if (button[0])
 				{
@@ -4645,11 +4649,9 @@ void JE_mainGamePlayerFunctions(void)
 
 	/* == Parallax Map Scrolling == */
 	if (twoPlayerMode)
-	{
 		tempX = (player[0].x + player[1].x) / 2;
-	} else {
+	else
 		tempX = player[0].x;
-	}
 
 	tempW = floorf((260.0f - (tempX - 36.0f)) / (260.0f - 36.0f) * (24.0f * 3.0f) - 1.0f);
 	mapX3Ofs   = tempW;
@@ -4791,7 +4793,6 @@ void JE_playerCollide(Player *this_player, JE_byte playerNum_)
 							uint temp = player[1].items.sidekick_level - 100 - 1;
 							for (uint i = 0; i < COUNTOF(player[1].items.sidekick); ++i)
 								player[1].items.sidekick[i] = optionSelect[player[1].items.sidekick_series][temp][i];
-
 
 							shotMultiPos[SHOT_LEFT_SIDEKICK] = 0;
 							shotMultiPos[SHOT_RIGHT_SIDEKICK] = 0;
@@ -5032,8 +5033,8 @@ void JE_playerCollide(Player *this_player, JE_byte playerNum_)
 								temp3 = enemy[temp2].linknum;
 								if (temp2 == b ||
 									(temp != 255 &&
-									 (temp == temp3 || temp - 100 == temp3
-									  || (temp3 > 40 && temp3 / 20 == temp / 20 && temp3 <= temp))))
+									 (temp == temp3 || temp - 100 == temp3 ||
+									  (temp3 > 40 && temp3 / 20 == temp / 20 && temp3 <= temp))))
 								{
 									int enemy_screen_x = enemy[temp2].ex + enemy[temp2].mapoffset;
 
@@ -5062,4 +5063,3 @@ void JE_playerCollide(Player *this_player, JE_byte playerNum_)
 		}
 	}
 }
-

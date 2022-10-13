@@ -126,7 +126,6 @@ inline bool diff(unsigned int w1, unsigned int w2)
 	         ( abs((int)(YUV1 & Vmask) - (int)(YUV2 & Vmask)) > trV ) );
 }
 
-
 #define PIXEL00_0     *(Uint32 *)dst = c[5];
 #define PIXEL00_10    interp1((Uint32 *)dst, c[5], c[1]);
 #define PIXEL00_11    interp1((Uint32 *)dst, c[5], c[4]);
@@ -222,7 +221,9 @@ void hq2x_32(SDL_Surface *src_surface, SDL_Surface *dst_surface)
 				w[1] = *(src + prevline - 1);
 				w[4] = *(src - 1);
 				w[7] = *(src + nextline - 1);
-			} else {
+			}
+			else
+			{
 				w[1] = w[2];
 				w[4] = w[5];
 				w[7] = w[8];
@@ -233,7 +234,9 @@ void hq2x_32(SDL_Surface *src_surface, SDL_Surface *dst_surface)
 				w[3] = *(src + prevline + 1);
 				w[6] = *(src + 1);
 				w[9] = *(src + nextline + 1);
-			} else {
+			}
+			else
+			{
 				w[3] = w[2];
 				w[6] = w[5];
 				w[9] = w[8];
@@ -246,9 +249,10 @@ void hq2x_32(SDL_Surface *src_surface, SDL_Surface *dst_surface)
 			
 			for (int k=1; k<=9; k++)
 			{
-				if (k==5) continue;
+				if (k==5)
+					continue;
 				
-				if ( w[k] != w[5] )
+				if (w[k] != w[5])
 				{
 					YUV2 = yuv_palette[w[k]];
 					if ( ( abs((YUV1 & Ymask) - (YUV2 & Ymask)) > trY ) ||
@@ -2914,7 +2918,6 @@ void hq2x_32(SDL_Surface *src_surface, SDL_Surface *dst_surface)
 	}
 }
 
-
 #define PIXEL00_1M  interp1((Uint32 *)dst, c[5], c[1]);
 #define PIXEL00_1U  interp1((Uint32 *)dst, c[5], c[2]);
 #define PIXEL00_1L  interp1((Uint32 *)dst, c[5], c[4]);
@@ -3015,7 +3018,9 @@ void hq3x_32(SDL_Surface *src_surface, SDL_Surface *dst_surface)
 				w[1] = *(src + prevline - 1);
 				w[4] = *(src - 1);
 				w[7] = *(src + nextline - 1);
-			} else {
+			}
+			else
+			{
 				w[1] = w[2];
 				w[4] = w[5];
 				w[7] = w[8];
@@ -3026,7 +3031,9 @@ void hq3x_32(SDL_Surface *src_surface, SDL_Surface *dst_surface)
 				w[3] = *(src + prevline + 1);
 				w[6] = *(src + 1);
 				w[9] = *(src + nextline + 1);
-			} else {
+			}
+			else
+			{
 				w[3] = w[2];
 				w[6] = w[5];
 				w[9] = w[8];
@@ -3039,9 +3046,10 @@ void hq3x_32(SDL_Surface *src_surface, SDL_Surface *dst_surface)
 			
 			for (int k=1; k<=9; k++)
 			{
-				if (k==5) continue;
+				if (k==5)
+					continue;
 				
-				if ( w[k] != w[5] )
+				if (w[k] != w[5])
 				{
 					YUV2 = yuv_palette[w[k]];
 					if ( ( abs((YUV1 & Ymask) - (YUV2 & Ymask)) > trY ) ||
@@ -6680,7 +6688,6 @@ void hq3x_32(SDL_Surface *src_surface, SDL_Surface *dst_surface)
 	}
 }
 
-
 #define PIXEL4_00_0     *(Uint32 *)(dst) = c[5];
 #define PIXEL4_00_11    interp1((Uint32 *)(dst), c[5], c[4]);
 #define PIXEL4_00_12    interp1((Uint32 *)(dst), c[5], c[2]);
@@ -6868,7 +6875,9 @@ void hq4x_32(SDL_Surface *src_surface, SDL_Surface *dst_surface)
 				w[1] = *(src + prevline - 1);
 				w[4] = *(src - 1);
 				w[7] = *(src + nextline - 1);
-			} else {
+			}
+			else
+			{
 				w[1] = w[2];
 				w[4] = w[5];
 				w[7] = w[8];
@@ -6879,7 +6888,9 @@ void hq4x_32(SDL_Surface *src_surface, SDL_Surface *dst_surface)
 				w[3] = *(src + prevline + 1);
 				w[6] = *(src + 1);
 				w[9] = *(src + nextline + 1);
-			} else {
+			}
+			else
+			{
 				w[3] = w[2];
 				w[6] = w[5];
 				w[9] = w[8];
@@ -6892,9 +6903,10 @@ void hq4x_32(SDL_Surface *src_surface, SDL_Surface *dst_surface)
 			
 			for (int k=1; k<=9; k++)
 			{
-				if (k==5) continue;
+				if (k==5)
+					continue;
 				
-				if ( w[k] != w[5] )
+				if (w[k] != w[5])
 				{
 					YUV2 = yuv_palette[w[k]];
 					if ( ( abs((YUV1 & Ymask) - (YUV2 & Ymask)) > trY ) ||
