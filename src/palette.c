@@ -175,7 +175,7 @@ void fade_palette(Palette colors, int steps, unsigned int first_color, unsigned 
 		if (bpp != 8)
 			JE_showVGA();
 		
-		wait_delay();
+		service_wait_delay();
 	}
 }
 
@@ -198,7 +198,7 @@ void fade_solid(SDL_Color color, int steps, unsigned int first_color, unsigned i
 		if (bpp != 8)
 			JE_showVGA();
 		
-		wait_delay();
+		service_wait_delay();
 	}
 }
 
