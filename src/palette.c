@@ -167,7 +167,7 @@ void fade_palette(Palette colors, int steps, unsigned int first_color, unsigned 
 	
 	for (; steps > 0; steps--)
 	{
-		setdelay(1);
+		setDelay(1);
 		
 		step_fade_palette(diff, steps, first_color, last_color);
 		
@@ -190,7 +190,7 @@ void fade_solid(SDL_Color color, int steps, unsigned int first_color, unsigned i
 	
 	for (; steps > 0; steps--)
 	{
-		setdelay(1);
+		setDelay(1);
 		
 		step_fade_palette(diff, steps, first_color, last_color);
 		

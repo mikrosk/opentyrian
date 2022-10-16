@@ -1526,7 +1526,7 @@ static enum de_state_t DE_RunTick(void)
 {
 	static unsigned int endDelay;
 
-	setjasondelay(1);
+	setDelay(1);
 
 	memset(soundQueue, 0, sizeof(soundQueue));
 	JE_tempScreenChecking();
