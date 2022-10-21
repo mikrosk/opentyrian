@@ -96,7 +96,7 @@ void setupMenu(void)
 		MENU_ITEM_DISPLAY,
 		MENU_ITEM_SCALER,
 		MENU_ITEM_MUSIC_VOLUME,
-		MENU_ITEM_EFFECTS_VOLUME,
+		MENU_ITEM_SOUND_VOLUME,
 	} MenuItemId;
 
 	typedef enum
@@ -147,7 +147,7 @@ void setupMenu(void)
 			.header = "Sound",
 			.items = {
 				{ MENU_ITEM_MUSIC_VOLUME, "Music Volume", "Change volume with the left/right arrow keys." },
-				{ MENU_ITEM_EFFECTS_VOLUME, "Effects Volume", "Change volume with the left/right arrow keys." },
+				{ MENU_ITEM_SOUND_VOLUME, "Sound Volume", "Change volume with the left/right arrow keys." },
 				{ MENU_ITEM_DONE, "Done", "Return to the previous menu." },
 				{ -1 }
 			},
@@ -239,7 +239,7 @@ void setupMenu(void)
 				JE_rectangle(VGAScreen, xMenuItemValue - 2, y - 2, xMenuItemValue + 96, y + 11, 242);
 				break;
 
-			case MENU_ITEM_EFFECTS_VOLUME:
+			case MENU_ITEM_SOUND_VOLUME:
 				JE_barDrawShadow(VGAScreen, xMenuItemValue, y, 1, samples_disabled ? 170 : 174, (fxVolume + 4) / 8, 2, 10);
 				JE_rectangle(VGAScreen, xMenuItemValue - 2, y - 2, xMenuItemValue + 96, y + 11, 242);
 				break;
@@ -362,7 +362,7 @@ void setupMenu(void)
 										set_volume(tyrMusicVolume, fxVolume);
 										break;
 									}
-									case MENU_ITEM_EFFECTS_VOLUME:
+									case MENU_ITEM_SOUND_VOLUME:
 									{
 										int value = (lastmouse_x - xMenuItemValue) * 255 / (wMenuItemValue - 1);
 										fxVolume = MIN(MAX(0, value), 255);
@@ -428,7 +428,7 @@ void setupMenu(void)
 						JE_changeVolume(&tyrMusicVolume, -8, &fxVolume, 0);
 						break;
 					}
-					case MENU_ITEM_EFFECTS_VOLUME:
+					case MENU_ITEM_SOUND_VOLUME:
 					{
 						JE_changeVolume(&tyrMusicVolume, 0, &fxVolume, -8);
 
@@ -451,7 +451,7 @@ void setupMenu(void)
 						JE_changeVolume(&tyrMusicVolume, 8, &fxVolume, 0);
 						break;
 					}
-					case MENU_ITEM_EFFECTS_VOLUME:
+					case MENU_ITEM_SOUND_VOLUME:
 					{
 						JE_changeVolume(&tyrMusicVolume, 0, &fxVolume, 8);
 
@@ -559,7 +559,7 @@ void setupMenu(void)
 						restart_song();
 					break;
 				}
-				case MENU_ITEM_EFFECTS_VOLUME:
+				case MENU_ITEM_SOUND_VOLUME:
 				{
 					samples_disabled = !samples_disabled;
 
