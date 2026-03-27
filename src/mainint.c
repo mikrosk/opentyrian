@@ -2738,8 +2738,8 @@ void JE_endLevelAni(void)
 
 		if (cubeMax > 0)
 		{
-			if (cubeMax > 4)
-				cubeMax = 4;
+			if (cubeMax > COUNTOF(cubeList))
+				cubeMax = COUNTOF(cubeList);
 
 			if (frameCountMax != 0)
 				frameCountMax = 1;
