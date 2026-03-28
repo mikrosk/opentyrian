@@ -18,12 +18,11 @@
  */
 #include "starlib.h"
 
-#include "keyboard.h"
+#include "joystick.h"
 #include "mtrand.h"
+#include "nortsong.h"
 #include "opentyr.h"
 #include "video.h"
-
-#include <ctype.h>
 
 #define starlib_MAX_STARS 1000
 #define MAX_TYPES 14
@@ -59,7 +58,7 @@ static JE_shortint speedChange;
 
 static JE_byte pColor;
 
-void JE_starlib_main(void)
+bool starLibMain(KeyboardInput *const keyboardInput)  // FKA StarLib.Main
 {
 	int off;
 	JE_word i;
@@ -149,89 +148,97 @@ void JE_starlib_main(void)
 		}
 	}
 
-	if (newkey)
+	push_joysticks_as_keyboard();
+	handleSdlEvents();
+
+	bool gotKeyboardInput = keyboardGetInput(keyboardInput);
+
+	if (gotKeyboardInput)
 	{
-		switch (toupper(lastkey_char))
+		switch (KEY_COMBO(keyboardInput->mod, keyboardInput->scancode))
 		{
-			case '+':
+			case KEY_COMBO(KMOD_SHIFT, SDLK_EQUALS):
 				starlib_speed++;
 				speedChange = 0;
 				break;
-			case '-':
+			case SDLK_MINUS:
 				starlib_speed--;
 				speedChange = 0;
 				break;
-			case '1':
+			case SDLK_1:
 				JE_changeSetup(1);
 				break;
-			case '2':
+			case SDLK_2:
 				JE_changeSetup(2);
 				break;
-			case '3':
+			case SDLK_3:
 				JE_changeSetup(3);
 				break;
-			case '4':
+			case SDLK_4:
 				JE_changeSetup(4);
 				break;
-			case '5':
+			case SDLK_5:
 				JE_changeSetup(5);
 				break;
-			case '6':
+			case SDLK_6:
 				JE_changeSetup(6);
 				break;
-			case '7':
+			case SDLK_7:
 				JE_changeSetup(7);
 				break;
-			case '8':
+			case SDLK_8:
 				JE_changeSetup(8);
 				break;
-			case '9':
+			case SDLK_9:
 				JE_changeSetup(9);
 				break;
-			case '0':
+			case SDLK_0:
 				JE_changeSetup(10);
 				break;
-			case '!':
+			case KEY_COMBO(KMOD_SHIFT, SDLK_1):
 				JE_changeSetup(11);
 				break;
-			case '@':
+			case KEY_COMBO(KMOD_SHIFT, SDLK_2):
 				JE_changeSetup(12);
 				break;
-			case '#':
+			case KEY_COMBO(KMOD_SHIFT, SDLK_3):
 				JE_changeSetup(13);
 				break;
-			case '$':
+			case KEY_COMBO(KMOD_SHIFT, SDLK_4):
 				JE_changeSetup(14);
 				break;
 
-			case 'C':
+			case SDLK_c:
+			case KEY_COMBO(KMOD_SHIFT, SDLK_c):
 				JE_resetValues();
 				break;
-			case 'S':
+			case SDLK_s:
+			case KEY_COMBO(KMOD_SHIFT, SDLK_s):
 				nspVarVarInc = mt_rand_1() * 0.01f - 0.005f;
 				break;
-			case 'X':
-			case 27:
+			case SDLK_x:
+			case KEY_COMBO(KMOD_SHIFT, SDLK_x):
+			case SDLK_ESCAPE:
 				run = false;
 				break;
-			case '[':
+			case SDLK_LEFTBRACKET:
 				pColor--;
 				break;
-			case ']':
+			case SDLK_RIGHTBRACKET:
 				pColor++;
 				break;
-			case '{':
+			case KEY_COMBO(KMOD_SHIFT, SDLK_LEFTBRACKET):
 				pColor -= 72;
 				break;
-			case '}':
+			case KEY_COMBO(KMOD_SHIFT, SDLK_RIGHTBRACKET):
 				pColor += 72;
 				break;
-			case '`': /* ` */
+			case SDLK_BACKQUOTE:
 				doChange = !doChange;
 				break;
-			case 'P':
-				wait_noinput(true, false, false);
-				wait_input(true, false, false);
+			case SDLK_p:
+			case KEY_COMBO(KMOD_SHIFT, SDLK_p):
+				waitUntilGetInput();
 				break;
 			default:
 				break;
@@ -253,6 +260,8 @@ void JE_starlib_main(void)
 	}
 
 	nspVarInc += nspVarVarInc;
+
+	return gotKeyboardInput;
 }
 
 void JE_wackyCol(void)

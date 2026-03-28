@@ -83,15 +83,13 @@ void jukebox(void)  // FKA Setup.jukeboxGo
 				play_song(mt_rand() % MUSIC_NUM);
 		}
 
-		setDelay(1);
+		setFrameCount(1);
 
 		SDL_FillRect(VGAScreenSeg, NULL, 0);
 
-		// starlib input needs to be rewritten
-		JE_starlib_main();
+		KeyboardInput keyboardInput;
 
-		push_joysticks_as_keyboard();
-		service_SDL_events(true);
+		bool gotKeyboardInput = starLibMain(&keyboardInput);
 
 		if (!hide_text)
 		{
@@ -114,19 +112,19 @@ void jukebox(void)  // FKA Setup.jukeboxGo
 		
 		JE_showVGA();
 
-		wait_delay();
+		waitUntilElapsed();
 
-		// quit on mouse click
-		Uint16 x, y;
-		if (JE_mousePosition(&x, &y) > 0)
+		// Quit on mouse click.
+		if (mouseGetInput(INPUT_NO_MOTION, NULL))
 			trigger_quit = true;
 
-		if (newkey)
+		if (gotKeyboardInput)
 		{
-			switch (lastkey_sym)
+			switch (KEY_COMBO(keyboardInput.mod, keyboardInput.scancode))
 			{
-			case SDLK_ESCAPE: // quit jukebox
+			case SDLK_ESCAPE:
 			case SDLK_q:
+			case KEY_COMBO(KMOD_SHIFT, SDLK_q):
 				trigger_quit = true;
 				break;
 
@@ -135,13 +133,23 @@ void jukebox(void)  // FKA Setup.jukeboxGo
 				break;
 
 			case SDLK_f:
+			case KEY_COMBO(KMOD_SHIFT, SDLK_f):
 				fading_song = !fading_song;
 				break;
 			case SDLK_n:
+			case KEY_COMBO(KMOD_SHIFT, SDLK_n):
 				fade_looped_songs = !fade_looped_songs;
 				break;
+			case SDLK_v:
+			case KEY_COMBO(KMOD_SHIFT, SDLK_v):
+				// Not implemented.
+				break;
+			case SDLK_t:
+			case KEY_COMBO(KMOD_SHIFT, SDLK_t):
+				// Not implemented.
+				break;
 
-			case SDLK_SLASH: // switch to sfx mode
+			case SDLK_SLASH:
 				fx = !fx;
 				break;
 			case SDLK_COMMA:
@@ -168,11 +176,13 @@ void jukebox(void)  // FKA Setup.jukeboxGo
 				play_song((song_playing + 1) % MUSIC_NUM);
 				stopped = false;
 				break;
-			case SDLK_s: // stop song
+			case SDLK_s:
+			case KEY_COMBO(KMOD_SHIFT, SDLK_s):
 				stop_song();
 				stopped = true;
 				break;
-			case SDLK_r: // restart song
+			case SDLK_r:
+			case KEY_COMBO(KMOD_SHIFT, SDLK_r):
 				restart_song();
 				stopped = false;
 				break;
