@@ -18,13 +18,11 @@
  */
 #include "helptext.h"
 
-#include "config.h"
 #include "episodes.h"
 #include "file.h"
 #include "fonthand.h"
 #include "menus.h"
 #include "opentyr.h"
-#include "video.h"
 
 #include <assert.h>
 #include <string.h>

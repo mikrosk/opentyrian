@@ -28,8 +28,6 @@
 
 #include "SDL.h"
 
-#include <stdio.h>
-
 #define SDL_POLL_INTERVAL 10
 
 JE_boolean ESCPressed;

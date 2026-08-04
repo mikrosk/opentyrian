@@ -19,7 +19,6 @@
 #include "xmas.h"
 
 #include "font.h"
-#include "joystick.h"
 #include "keyboard.h"
 #include "mouse.h"
 #include "nortsong.h"
@@ -28,7 +27,7 @@
 #include "vga256d.h"
 #include "video.h"
 
-#include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 
 bool xmas = false;

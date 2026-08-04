@@ -20,8 +20,6 @@
 
 #include <string.h>
 
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-
 MemWriter memWriterSplit(MemWriter *writer, size_t size)
 {
 	writer->error |= writer->size < size;

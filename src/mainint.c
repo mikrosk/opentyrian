@@ -33,6 +33,7 @@
 #include "menus.h"
 #include "mouse.h"
 #include "mtrand.h"
+#include "musmast.h"
 #include "network.h"
 #include "nortsong.h"
 #include "nortvars.h"

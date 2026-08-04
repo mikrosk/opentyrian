@@ -18,9 +18,6 @@
  */
 #include "video.h"
 
-#include "keyboard.h"
-#include "opentyr.h"
-#include "palette.h"
 #include "video_scale.h"
 
 #include <assert.h>

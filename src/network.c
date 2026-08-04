@@ -20,12 +20,10 @@
 
 #include "episodes.h"
 #include "fonthand.h"
-#include "helptext.h"
-#include "joystick.h"
 #include "keyboard.h"
-#include "mainint.h"
 #include "nortsong.h"
 #include "opentyr.h"
+#include "palette.h"
 #include "picload.h"
 #include "sprite.h"
 #include "varz.h"

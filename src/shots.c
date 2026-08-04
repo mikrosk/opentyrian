@@ -18,6 +18,7 @@
  */
 #include "shots.h"
 
+#include "episodes.h"
 #include "player.h"
 #include "sprite.h"
 #include "video.h"

@@ -18,6 +18,7 @@
  */
 #ifndef SHOTS_H
 #define SHOTS_H
+
 #include "opentyr.h"
 
 typedef struct {

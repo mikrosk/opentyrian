@@ -20,7 +20,6 @@
 
 #include "episodes.h"
 #include "file.h"
-#include "joystick.h"
 #include "loudness.h"
 #include "memreader.h"
 #include "memwriter.h"
@@ -29,7 +28,6 @@
 #include "opentyr.h"
 #include "player.h"
 #include "varz.h"
-#include "vga256d.h"
 #include "video.h"
 #include "video_scale.h"
 

@@ -19,9 +19,9 @@
 #ifndef VIDEO_H
 #define VIDEO_H
 
-#include "opentyr.h"
-
 #include "SDL.h"
+
+#include <stdbool.h>
 
 #define vga_width 320
 #define vga_height 200

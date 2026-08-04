@@ -19,7 +19,6 @@
 #ifndef JOYSTICK_H
 #define JOYSTICK_H
 
-#include "opentyr.h"
 #include "config_file.h"
 
 #include "SDL.h"

@@ -18,16 +18,11 @@
  */
 #include "vga256d.h"
 
-#include "config.h" // For fullscreen stuff
-#include "keyboard.h"
 #include "opentyr.h"
-#include "palette.h"
-#include "video.h"
 
 #include "SDL.h"
 
 #include <assert.h>
-#include <math.h>
 #include <stdio.h>
 #include <string.h>
 

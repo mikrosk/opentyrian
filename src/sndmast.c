@@ -18,8 +18,6 @@
  */
 #include "sndmast.h"
 
-#include "opentyr.h"
-
 const char soundTitle[SOUND_COUNT][9] = /* [1..soundnum + 9] of string [8] */
 {
 	"SCALEDN2", /*1*/

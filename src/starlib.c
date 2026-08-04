@@ -20,7 +20,6 @@
 
 #include "joystick.h"
 #include "mtrand.h"
-#include "nortsong.h"
 #include "opentyr.h"
 #include "video.h"
 

@@ -19,7 +19,6 @@
 #ifndef MAININT_H
 #define MAININT_H
 
-#include "config.h"
 #include "opentyr.h"
 #include "palette.h"
 #include "player.h"

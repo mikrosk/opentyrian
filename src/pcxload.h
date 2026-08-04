@@ -19,8 +19,6 @@
 #ifndef PCXLOAD_H
 #define PCXLOAD_H
 
-#include "opentyr.h"
-
 void JE_loadPCX(const char *file);
 
 #endif /* PCXLOAD_H */

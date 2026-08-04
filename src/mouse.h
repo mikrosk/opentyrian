@@ -21,8 +21,6 @@
 
 #include "opentyr.h"
 
-#include "SDL.h"
-
 enum
 {
 	MOUSE_POINTER_NORMAL = 0,

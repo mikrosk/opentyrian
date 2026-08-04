@@ -21,10 +21,12 @@
 
 #include "SDL_types.h"
 
-#include <math.h>
 #include <stdbool.h>
 
-#define COUNTOF(x) ((unsigned)(sizeof(x) / sizeof *(x)))  // use only on arrays!
+#ifndef COUNTOF
+#define COUNTOF(x) (sizeof(x) / sizeof *(x))  // use only on arrays!
+#endif
+
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 

@@ -20,14 +20,10 @@
 
 #include "config.h"
 #include "config_file.h"
-#include "file.h"
 #include "keyboard.h"
 #include "network.h"
 #include "nortsong.h"
 #include "opentyr.h"
-#include "params.h"
-#include "varz.h"
-#include "video.h"
 
 #include <assert.h>
 #include <ctype.h>

@@ -18,8 +18,6 @@
  */
 #include "memreader.h"
 
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-
 MemReader memReaderSplit(MemReader *reader, size_t size)
 {
 	reader->error |= reader->size < size;

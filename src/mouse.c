@@ -19,10 +19,8 @@
 #include "mouse.h"
 
 #include "keyboard.h"
-#include "nortvars.h"
 #include "sprite.h"
 #include "video.h"
-#include "vga256d.h"
 
 #if defined(TARGET_GP2X) || defined(TARGET_DINGUX)
 bool has_mouse = false;

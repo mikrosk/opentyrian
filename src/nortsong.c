@@ -19,17 +19,14 @@
 #include "nortsong.h"
 
 #include "file.h"
-#include "joystick.h"
-#include "keyboard.h"
 #include "loudness.h"
-#include "musmast.h"
-#include "network.h"
 #include "opentyr.h"
-#include "params.h"
 #include "sndmast.h"
-#include "vga256d.h"
 
 #include "SDL.h"
+
+#include <stdlib.h>
+#include <string.h>
 
 JE_word frameCountMax;
 

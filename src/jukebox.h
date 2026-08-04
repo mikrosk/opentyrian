@@ -19,8 +19,6 @@
 #ifndef JUKEBOX_H
 #define JUKEBOX_H
 
-#include "opentyr.h"
-
 void jukebox(void);
 
 #endif /* JUKEBOX_H */

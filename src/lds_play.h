@@ -21,6 +21,7 @@
 
 #include "opentyr.h"
 
+#include <stdbool.h>
 #include <stdio.h>
 
 extern bool playing, songlooped;

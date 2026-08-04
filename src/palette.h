@@ -19,8 +19,6 @@
 #ifndef PALETTE_H
 #define PALETTE_H
 
-#include "opentyr.h"
-
 #include "SDL.h"
 
 typedef SDL_Color Palette[256];

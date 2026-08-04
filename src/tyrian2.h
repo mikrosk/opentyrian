@@ -22,7 +22,6 @@
 #include "opentyr.h"
 
 #include "varz.h"
-#include "helptext.h"
 
 void intro_logos(void);
 

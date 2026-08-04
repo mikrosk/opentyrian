@@ -18,9 +18,7 @@
  */
 #include "nortvars.h"
 
-#include "opentyr.h"
 #include "vga256d.h"
-#include "video.h"
 
 void JE_dBar3(SDL_Surface *surface, JE_integer x,  JE_integer y,  JE_integer num,  JE_integer col)
 {

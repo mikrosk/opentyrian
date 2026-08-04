@@ -19,7 +19,7 @@
 #ifndef MENUS_H
 #define MENUS_H
 
-#include "opentyr.h"
+#include <stdbool.h>
 
 extern char episode_name[6][31];
 extern char difficulty_name[7][21];

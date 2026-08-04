@@ -21,7 +21,6 @@
 #include "config.h"
 #include "mtrand.h"
 #include "opentyr.h"
-#include "varz.h"
 #include "video.h"
 
 #include <assert.h>

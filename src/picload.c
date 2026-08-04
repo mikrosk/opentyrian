@@ -22,7 +22,6 @@
 #include "opentyr.h"
 #include "palette.h"
 #include "pcxmast.h"
-#include "video.h"
 
 #include <string.h>
 

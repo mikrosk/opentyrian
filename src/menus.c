@@ -22,16 +22,13 @@
 #include "episodes.h"
 #include "font.h"
 #include "fonthand.h"
-#include "joystick.h"
 #include "keyboard.h"
 #include "mouse.h"
-#include "network.h"
 #include "nortsong.h"
 #include "opentyr.h"
 #include "palette.h"
 #include "picload.h"
 #include "sprite.h"
-#include "vga256d.h"
 #include "video.h"
 
 char episode_name[6][31];

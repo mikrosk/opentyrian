@@ -29,7 +29,6 @@
 
 #include <assert.h>
 #include <ctype.h>
-#include <errno.h>
 #include <stdint.h>
 #include <string.h>
 

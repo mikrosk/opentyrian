@@ -19,8 +19,7 @@
 #include "lds_play.h"
 
 #include "file.h"
-#include "loudness.h"
-#include "opentyr.h"
+#include "opl.h"
 
 #include <assert.h>
 

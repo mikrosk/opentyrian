@@ -20,6 +20,7 @@
 
 #include "backgrnd.h"
 #include "config.h"
+#include "episodes.h"
 #include "file.h"
 #include "fonthand.h"
 #include "joystick.h"

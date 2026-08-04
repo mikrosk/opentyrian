@@ -24,6 +24,7 @@
 #include "SDL.h"
 
 #include <assert.h>
+#include <stdbool.h>
 #include <stdio.h>
 
 #define FONT_SHAPES       0

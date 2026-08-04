@@ -19,8 +19,6 @@
 #ifndef DESTRUCT_H
 #define DESTRUCT_H
 
-#include "opentyr.h"
-
 void JE_destructGame(void);
 
 #endif /* DESTRUCT_H */

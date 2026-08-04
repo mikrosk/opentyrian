@@ -20,9 +20,10 @@
 
 #include "file.h"
 #include "lds_play.h"
-#include "nortsong.h"
 #include "opentyr.h"
-#include "params.h"
+#include "opl.h"
+
+#include "SDL.h"
 
 #include <assert.h>
 #include <stdlib.h>

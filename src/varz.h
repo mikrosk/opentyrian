@@ -19,7 +19,7 @@
 #ifndef VARZ_H
 #define VARZ_H
 
-#include "episodes.h"
+#include "lvlmast.h"
 #include "opentyr.h"
 #include "player.h"
 #include "sprite.h"
