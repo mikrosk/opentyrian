@@ -23,7 +23,6 @@
 #include "SDL.h"
 
 #include <assert.h>
-#include <stdio.h>
 #include <string.h>
 
 void JE_pix(SDL_Surface *surface, int x, int y, JE_byte c)
@@ -74,7 +73,7 @@ void JE_rectangle(SDL_Surface *surface, int a, int b, int c, int d, int e) /* x1
 	}
 	else
 	{
-		printf("!!! WARNING: Rectangle clipped: %d %d %d %d %d\n", a, b, c, d, e);
+		assert(false);
 	}
 }
 
@@ -104,7 +103,7 @@ void JE_barShade(SDL_Surface *surface, int a, int b, int c, int d) /* x1, y1, x2
 	}
 	else
 	{
-		printf("!!! WARNING: Darker Rectangle clipped: %d %d %d %d\n", a,b,c,d);
+		assert(false);
 	}
 }
 
@@ -139,7 +138,7 @@ void JE_barBright(SDL_Surface *surface, int a, int b, int c, int d) /* x1, y1, x
 	}
 	else
 	{
-		printf("!!! WARNING: Brighter Rectangle clipped: %d %d %d %d\n", a,b,c,d);
+		assert(false);
 	}
 }
 

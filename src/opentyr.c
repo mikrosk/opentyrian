@@ -29,6 +29,7 @@
 #include "joystick.h"
 #include "jukebox.h"
 #include "keyboard.h"
+#include "logging.h"
 #include "loudness.h"
 #include "mainint.h"
 #include "mouse.h"
@@ -720,19 +721,23 @@ int main(int argc, char *argv[])
 {
 	mt_srand(time(NULL));
 
-	printf("\nWelcome to... >> %s %s <<\n\n", opentyrian_str, opentyrian_version);
+	logInfo("%s", "");
+	logInfo("Welcome to... >> %s %s <<", opentyrian_str, opentyrian_version);
+	logInfo("%s", "");
+	logInfo("Copyright (C) The OpenTyrian Development Team");
+	logInfo("%s", "");
+	logInfo("This program comes with ABSOLUTELY NO WARRANTY.");
+	logInfo("This is free software, and you are welcome to redistribute it");
+	logInfo("under certain conditions.  See the file COPYING for details.");
+	logInfo("%s", "");
 
-	printf("Copyright (C) 2022 The OpenTyrian Development Team\n\n");
-
-	printf("This program comes with ABSOLUTELY NO WARRANTY.\n");
-	printf("This is free software, and you are welcome to redistribute it\n");
-	printf("under certain conditions.  See the file COPYING for details.\n\n");
-
-	if (SDL_Init(0))
+	if (SDL_Init(0) != 0)
 	{
-		printf("Failed to initialize SDL: %s\n", SDL_GetError());
-		return -1;
+		logFatal("Failed to initialize SDL: %s", SDL_GetError());
+		return EXIT_FAILURE;
 	}
+
+	atexit(SDL_Quit);
 
 	loadConfiguration();
 	loadSaves();
@@ -741,18 +746,25 @@ int main(int argc, char *argv[])
 
 	JE_paramCheck(argc, argv);
 
+	if (data_dir()[0] == '\0')
+	{
+		logFatal("The Tyrian " TYRIAN_VERSION " data files could not be found.");
+		return EXIT_FAILURE;
+	}
+
 	JE_scanForEpisodes();
 
 	init_video();
 	init_keyboard();
 	init_joysticks();
-	printf("assuming mouse detected\n"); // SDL can't tell us if there isn't one
+	if (has_mouse)
+		logInfo("Assuming mouse detected.");  // SDL can't tell us if there isn't one.
 
 	if (xmas && (!dir_file_exists(data_dir(), "tyrianc.shp") || !dir_file_exists(data_dir(), "voicesc.snd")))
 	{
 		xmas = false;
 
-		fprintf(stderr, "warning: Christmas is missing.\n");
+		logWarn("Christmas is missing.");
 	}
 
 	JE_loadPals();
@@ -773,7 +785,7 @@ int main(int argc, char *argv[])
 
 	if (!audio_disabled)
 	{
-		printf("initializing SDL audio...\n");
+		logInfo("Initializing SDL audio...");
 
 		init_audio();
 
@@ -783,16 +795,15 @@ int main(int argc, char *argv[])
 	}
 	else
 	{
-		printf("audio disabled\n");
+		logInfo("Audio is disabled.");
 	}
 
 	if (record_demo)
-		printf("demo recording enabled (input limited to keyboard)\n");
+		logInfo("Game will be recorded.");
 
 	JE_loadExtraShapes();  /*Editship*/
 
 	JE_loadHelpText();
-	/*debuginfo("Help text complete");*/
 
 	if (isNetworkGame)
 	{
@@ -802,8 +813,8 @@ int main(int argc, char *argv[])
 			network_tyrian_halt(3, false);
 		}
 #else
-		fprintf(stderr, "OpenTyrian was compiled without networking support.");
-		JE_tyrianHalt(5);
+		logFatal("OpenTyrian was compiled without networking support.");
+		return EXIT_FAILURE;
 #endif
 	}
 

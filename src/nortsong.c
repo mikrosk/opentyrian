@@ -19,6 +19,7 @@
 #include "nortsong.h"
 
 #include "file.h"
+#include "logging.h"
 #include "loudness.h"
 #include "opentyr.h"
 #include "sndmast.h"
@@ -195,7 +196,7 @@ void loadSndFile(bool xmas)
 	SDL_AudioCVT cvt;
 	if (SDL_BuildAudioCVT(&cvt, AUDIO_S8, 1, 11025, AUDIO_S16SYS, 1, audioSampleRate) < 0)
 	{
-		fprintf(stderr, "error: Failed to build audio converter: %s\n", SDL_GetError());
+		logError("Failed to build audio converter: %s", SDL_GetError());
 
 		for (int i = 0; i < SOUND_COUNT; ++i)
 			soundSampleCount[i] = 0;
@@ -214,9 +215,9 @@ void loadSndFile(bool xmas)
 		cvt.len = soundSampleCount[i];
 		memcpy(cvt.buf, soundSamples[i], cvt.len);
 
-		if (SDL_ConvertAudio(&cvt))
+		if (SDL_ConvertAudio(&cvt) != 0)
 		{
-			fprintf(stderr, "error: Failed to convert audio: %s\n", SDL_GetError());
+			logError("Failed to convert audio: %s", SDL_GetError());
 
 			soundSampleCount[i] = 0;
 
@@ -235,8 +236,7 @@ void loadSndFile(bool xmas)
 	return;
 
 die:
-	fprintf(stderr, "error: Unexpected data was read from a file.\n");
-	SDL_Quit();
+	logFatal("Unexpected data was read from a file.");
 	exit(EXIT_FAILURE);
 }
 

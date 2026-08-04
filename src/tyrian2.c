@@ -28,6 +28,7 @@
 #include "joystick.h"
 #include "keyboard.h"
 #include "lds_play.h"
+#include "logging.h"
 #include "loudness.h"
 #include "lvllib.h"
 #include "menus.h"
@@ -160,10 +161,7 @@ void JE_starShowVGA(void)
 inline static void blit_enemy(SDL_Surface *surface, unsigned int i, signed int x_offset, signed int y_offset, signed int sprite_offset)
 {
 	if (enemy[i].sprite2s == NULL)
-	{
-		fprintf(stderr, "warning: enemy %d sprite missing\n", i);
 		return;
-	}
 	
 	const int x = enemy[i].ex + x_offset + tempMapXOfs,
 	          y = enemy[i].ey + y_offset;
@@ -3850,7 +3848,10 @@ uint JE_makeEnemy(struct JE_SingleEnemyType *enemy, Uint16 eDatI, Sint16 uniqueS
 		enemy->sprite2s = sprite2s;
 	else
 		// Use shape table value from previous enemy that occupied the enemy slot. (Ex. APPROACH.)
-		fprintf(stderr, "warning: ignoring sprite from unloaded shape table %d\n", shapeTableI);
+		logWarn("Ignoring sprite from unloaded shape table %d.", shapeTableI);
+
+	if (enemy->sprite2s == NULL)
+		logWarn("Enemy sprite is missing.");
 
 	enemy->enemydatofs = &enemyDat[eDatI];
 
@@ -4367,17 +4368,18 @@ void JE_eventSystem(void)
 		JE_createNewEventEnemy(0, 0, 0);
 		break;
 
-	case 16:
-		if (eventRec[eventLoc-1].eventdat > 9)
+	case 16:  // Window Text
+	{
+		Sint16 id = eventRec[eventLoc-1].eventdat;
+		if (id < 1 || id > 9)
 		{
-			fprintf(stderr, "warning: event 16: bad event data\n");
+			logWarn("Event %05d %d has invalid window text ID %d.", eventRec[eventLoc-1].eventtime, eventRec[eventLoc-1].eventtype, id);
+			break;
 		}
-		else
-		{
-			JE_drawTextWindow(outputs[eventRec[eventLoc-1].eventdat-1]);
-			soundQueue[3] = windowTextSamples[eventRec[eventLoc-1].eventdat-1];
-		}
+		JE_drawTextWindow(outputs[id-1]);
+		soundQueue[3] = windowTextSamples[id-1];
 		break;
+	}
 
 	case 17: /* Ground Bottom */
 		JE_createNewEventEnemy(0, 25, 0);
@@ -5053,7 +5055,7 @@ void JE_eventSystem(void)
 		break;
 
 	default:
-		fprintf(stderr, "warning: ignoring unknown event %d\n", eventRec[eventLoc-1].eventtype);
+		logWarn("Event %05d %d has invalid type.", eventRec[eventLoc-1].eventtime, eventRec[eventLoc-1].eventtype);
 		break;
 	}
 

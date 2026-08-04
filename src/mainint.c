@@ -29,6 +29,7 @@
 #include "joystick.h"
 #include "keyboard.h"
 #include "lds_play.h"
+#include "logging.h"
 #include "loudness.h"
 #include "menus.h"
 #include "mouse.h"
@@ -2272,7 +2273,7 @@ bool load_next_demo(void)
 	fread_u8(temp2, 2, demo_file);
 	demo_keys_wait = (temp2[0] << 8) | temp2[1];
 
-	printf("loaded demo '%s'\n", demo_filename);
+	logDebug("Loaded demo '%s'.", demo_filename);
 
 	return true;
 }

@@ -22,6 +22,7 @@
 #include "editship.h"
 #include "episodes.h"
 #include "joystick.h"
+#include "logging.h"
 #include "loudness.h"
 #include "mainint.h"
 #include "mtrand.h"
@@ -448,50 +449,23 @@ void JE_tyrianHalt(JE_byte code)
 	free_sprite2s(&destructSpriteSheet);
 
 	for (int i = 0; i < SOUND_COUNT; i++)
-	{
 		free(soundSamples[i]);
-	}
 
-	if (code != 9)
-	{
-		/*
-		TODO?
-		JE_drawANSI("exitmsg.bin");
-		JE_gotoXY(1,22);*/
-
-		saveConfiguration();
-		saveSaves();
-	}
-
-	/* endkeyboard; */
-
-	if (code == 9)
-	{
-		/* OutputString('call=file0002.EXE' + #0'); TODO? */
-	}
+	saveConfiguration();
+	saveSaves();
 
 	if (code == 5)
-	{
 		code = 0;
-	}
 
 	if (trentWin)
 	{
-		printf("\n"
-		       "\n"
-		       "\n"
-		       "\n"
-		       "Sleep well, Trent, you deserve the rest.\n"
-		       "You now have permission to borrow my ship on your next mission.\n"
-		       "\n"
-		       "Also, you might want to try out the YESXMAS parameter.\n"
-		       "  Type: File0001 YESXMAS\n"
-		       "\n"
-		       "You'll need the 2.1 patch, though!\n"
-		       "\n");
+		// TODO: Show on screen rather than logging.
+		logInfo("%s", "");
+		logInfo("Sleep well, Trent, you deserve the rest.");
+		logInfo("You now have permission to borrow my ship on your next mission.");
+		logInfo("%s", "");
 	}
 
-	SDL_Quit();
 	exit(code);
 }
 

@@ -20,6 +20,7 @@
 
 #include "episodes.h"
 #include "file.h"
+#include "logging.h"
 #include "loudness.h"
 #include "memreader.h"
 #include "memwriter.h"
@@ -31,6 +32,7 @@
 #include "video.h"
 #include "video_scale.h"
 
+#include <errno.h>
 
 #ifdef _MSC_VER
 #include <direct.h>
@@ -727,7 +729,7 @@ void loadConfiguration(void)
 
 	if (invalid)
 	{
-		printf("\nInvalid or missing TYRIAN.CFG! Continuing using defaults.\n\n");
+		logWarn("'tyrian.cfg' is invalid or missing.");
 		
 		background2 = true;
 		gameSpeed = 4;
@@ -789,7 +791,7 @@ void saveConfiguration(void)
 	if (f != NULL)
 	{
 		if (fwrite(data, 1, sizeof(data), f) != sizeof(data))
-			fprintf(stderr, "warning: failed to write to 'tyrian.cfg'\n");
+			logWarn("Failed to write to 'tyrian.cfg': %s", strerror(errno));
 
 #ifndef TARGET_WIN32
 		fsync(fileno(f));
@@ -862,6 +864,8 @@ void loadSaves(void)
 
 	if (invalid)
 	{
+		logWarn("'tyrian.sav' is invalid or missing.");
+
 		memset(saveFiles, 0, sizeof(saveFiles));
 
 		for (size_t i = 0; i < SAVE_FILES_NUM; ++i)
@@ -946,7 +950,7 @@ void saveSaves(void)
 	if (f != NULL)
 	{
 		if (fwrite(data, 1, sizeof(data), f) != sizeof(data))
-			fprintf(stderr, "warning: failed to write to 'tyrian.sav'\n");
+			logWarn("Failed to write to 'tyrian.sav': %s", strerror(errno));
 
 #if _POSIX_C_SOURCE >= 1 || _XOPEN_SOURCE || _POSIX_SOURCE
 		fsync(fileno(f));

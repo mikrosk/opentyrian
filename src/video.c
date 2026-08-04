@@ -18,11 +18,14 @@
  */
 #include "video.h"
 
+#include "keyboard.h"
+#include "logging.h"
 #include "video_scale.h"
 
 #include <assert.h>
 #include <stdbool.h>
-#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 bool fullscreen_enabled = false;
 
@@ -34,13 +37,10 @@ static ScalerFunction scaler_function;
 
 void init_video(void)
 {
-	if (SDL_WasInit(SDL_INIT_VIDEO))
-		return;
-
-	if (SDL_InitSubSystem(SDL_INIT_VIDEO) == -1)
+	if (SDL_InitSubSystem(SDL_INIT_VIDEO) != 0)
 	{
-		fprintf(stderr, "error: failed to initialize SDL video: %s\n", SDL_GetError());
-		exit(1);
+		logFatal("Failed to initialize SDL video: %s", SDL_GetError());
+		exit(EXIT_FAILURE);
 	}
 
 	SDL_WM_SetCaption("OpenTyrian", NULL);
@@ -55,7 +55,7 @@ void init_video(void)
 	    !init_any_scaler(fullscreen_enabled) &&      // try any scaler in desired fullscreen state
 	    !init_any_scaler(!fullscreen_enabled))       // try any scaler in other fullscreen state
 	{
-		fprintf(stderr, "error: failed to initialize any supported video mode\n");
+		logFatal("Failed to initialize any supported video mode");
 		exit(EXIT_FAILURE);
 	}
 }
@@ -105,7 +105,7 @@ bool init_scaler(unsigned int new_scaler, bool fullscreen)
 	
 	if (surface == NULL)
 	{
-		fprintf(stderr, "error: failed to initialize %s video mode %dx%dx%d: %s\n", fullscreen ? "fullscreen" : "windowed", w, h, bpp, SDL_GetError());
+		logError("Failed to initialize %s video mode %dx%dx%d: %s", fullscreen ? "fullscreen" : "windowed", w, h, bpp, SDL_GetError());
 		return false;
 	}
 	
@@ -113,7 +113,7 @@ bool init_scaler(unsigned int new_scaler, bool fullscreen)
 	h = surface->h;
 	bpp = surface->format->BitsPerPixel;
 	
-	printf("initialized video: %dx%dx%d %s\n", w, h, bpp, fullscreen ? "fullscreen" : "windowed");
+	logInfo("Initialized video: %dx%dx%d %s", w, h, bpp, fullscreen ? "fullscreen" : "windowed");
 	
 	scaler = new_scaler;
 	fullscreen_enabled = fullscreen;

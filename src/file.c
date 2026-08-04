@@ -18,8 +18,8 @@
  */
 #include "file.h"
 
+#include "logging.h"
 #include "opentyr.h"
-#include "varz.h"
 
 #include "SDL.h"
 
@@ -85,8 +85,8 @@ FILE *dir_fopen_warn(const char *dir, const char *file, const char *mode)
 	FILE *f = dir_fopen(dir, file, mode);
 	
 	if (f == NULL)
-		fprintf(stderr, "warning: failed to open '%s': %s\n", file, strerror(errno));
-	
+		logWarn("Failed to open '%s': %s", file, strerror(errno));
+
 	return f;
 }
 
@@ -97,10 +97,8 @@ FILE *dir_fopen_die(const char *dir, const char *file, const char *mode)
 	
 	if (f == NULL)
 	{
-		fprintf(stderr, "error: failed to open '%s': %s\n", file, strerror(errno));
-		fprintf(stderr, "error: One or more of the required Tyrian " TYRIAN_VERSION " data files could not be found.\n"
-		                "       Please read the README file.\n");
-		JE_tyrianHalt(1);
+		logFatal("Failed to open '%s': %s", file, strerror(errno));
+		exit(EXIT_FAILURE);
 	}
 	
 	return f;
@@ -133,8 +131,7 @@ void fread_die(void *buffer, size_t size, size_t count, FILE *stream)
 	size_t result = fread(buffer, size, count, stream);
 	if (result != count)
 	{
-		fprintf(stderr, "error: An unexpected problem occurred while reading from a file.\n");
-		SDL_Quit();
+		logFatal("An error occurred while reading from a file: %s", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 }
@@ -144,8 +141,7 @@ void fwrite_die(const void *buffer, size_t size, size_t count, FILE *stream)
 	size_t result = fwrite(buffer, size, count, stream);
 	if (result != count)
 	{
-		fprintf(stderr, "error: An unexpected problem occurred while writing to a file.\n");
-		SDL_Quit();
+		logFatal("An error occurred while writing to a file: %s", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 }
