@@ -20,6 +20,7 @@
 
 #include "backgrnd.h"
 #include "config.h"
+#include "demo.h"
 #include "editship.h"
 #include "episodes.h"
 #include "file.h"
@@ -29,7 +30,6 @@
 #include "joystick.h"
 #include "keyboard.h"
 #include "lds_play.h"
-#include "logging.h"
 #include "loudness.h"
 #include "menus.h"
 #include "mouse.h"
@@ -2222,100 +2222,6 @@ void adjust_difficulty(void)
 	difficultyLevel = MAX((unsigned)difficultyLevel, new_difficulty);
 }
 
-bool load_next_demo(void)
-{
-	if (++demo_num > 5)
-		demo_num = 1;
-
-	char demo_filename[9];
-	snprintf(demo_filename, sizeof(demo_filename), "demo.%d", demo_num);
-	demo_file = dir_fopen_die(data_dir(), demo_filename, "rb"); // TODO: only play demos from existing file (instead of dying)
-
-	difficultyLevel = DIFFICULTY_NORMAL;
-	bonusLevelCurrent = false;
-
-	Uint8 temp;
-	fread_u8_die(&temp, 1, demo_file);
-	JE_initEpisode(temp);
-
-	fread_die(levelName, 1, 10, demo_file);
-	levelName[10] = '\0';
-
-	fread_u8_die(&lvlFileNum, 1, demo_file);
-
-	fread_u8_die(&player[0].items.weapon[FRONT_WEAPON].id,  1, demo_file);
-	fread_u8_die(&player[0].items.weapon[REAR_WEAPON].id,   1, demo_file);
-	fread_u8_die(&player[0].items.super_arcade_mode,        1, demo_file);
-	fread_u8_die(&player[0].items.sidekick[LEFT_SIDEKICK],  1, demo_file);
-	fread_u8_die(&player[0].items.sidekick[RIGHT_SIDEKICK], 1, demo_file);
-	fread_u8_die(&player[0].items.generator,                1, demo_file);
-
-	fread_u8_die(&player[0].items.sidekick_level,           1, demo_file); // could probably ignore
-	fread_u8_die(&player[0].items.sidekick_series,          1, demo_file); // could probably ignore
-
-	fread_u8_die(&initial_episode_num,                      1, demo_file); // could probably ignore
-
-	fread_u8_die(&player[0].items.shield,                   1, demo_file);
-	fread_u8_die(&player[0].items.special,                  1, demo_file);
-	fread_u8_die(&player[0].items.ship,                     1, demo_file);
-
-	for (uint i = 0; i < 2; ++i)
-		fread_u8_die(&player[0].items.weapon[i].power,      1, demo_file);
-
-	Uint8 unused[3];
-	fread_u8_die(unused, 3, demo_file);
-
-	fread_u8_die(&levelSong, 1, demo_file);
-
-	demo_keys = 0;
-
-	Uint8 temp2[2] = { 0, 0 };
-	fread_u8(temp2, 2, demo_file);
-	demo_keys_wait = (temp2[0] << 8) | temp2[1];
-
-	logDebug("Loaded demo '%s'.", demo_filename);
-
-	return true;
-}
-
-bool replay_demo_keys(void)
-{
-	while (demo_keys_wait == 0)
-	{
-		demo_keys = 0;
-		fread_u8(&demo_keys, 1, demo_file);
-
-		Uint8 temp2[2] = { 0, 0 };
-		fread_u8(temp2, 2, demo_file);
-		demo_keys_wait = (temp2[0] << 8) | temp2[1];
-
-		if (feof(demo_file))
-		{
-			// no more keys
-			return false;
-		}
-	}
-
-	demo_keys_wait--;
-
-	if (demo_keys & (1 << 0))
-		player[0].y -= CURRENT_KEY_SPEED;
-	if (demo_keys & (1 << 1))
-		player[0].y += CURRENT_KEY_SPEED;
-
-	if (demo_keys & (1 << 2))
-		player[0].x -= CURRENT_KEY_SPEED;
-	if (demo_keys & (1 << 3))
-		player[0].x += CURRENT_KEY_SPEED;
-
-	button[0] = (bool)(demo_keys & (1 << 4));
-	button[3] = (bool)(demo_keys & (1 << 5));
-	button[1] = (bool)(demo_keys & (1 << 6));
-	button[2] = (bool)(demo_keys & (1 << 7));
-
-	return true;
-}
-
 /*Street Fighter codes*/
 void JE_SFCodes(JE_byte playerNum_, JE_integer PX_, JE_integer PY_, JE_integer mouseX_, JE_integer mouseY_)
 {
@@ -3520,13 +3426,13 @@ redo:
 			}
 			else
 			{
-				if (record_demo || play_demo)
+				if (playDemo || recordDemo)
 					inputDevice = 1;  // keyboard is required device for demo recording
 
 				// demo playback input
-				if (play_demo)
+				if (playDemo)
 				{
-					if (!replay_demo_keys())
+					if (!playDemoKeys())
 					{
 						endLevel = true;
 						levelEnd = 40;
@@ -3580,7 +3486,7 @@ redo:
 				}
 
 				/* keyboard input */
-				if ((inputDevice == 0 || inputDevice == 1) && !play_demo)
+				if ((inputDevice == 0 || inputDevice == 1) && !playDemo)
 				{
 					if (keysactive[keySettings[KEY_SETTING_UP]])
 						this_player->y -= CURRENT_KEY_SPEED;
@@ -3606,34 +3512,8 @@ redo:
 						this_player->x += constantLastX;
 					}
 
-					// TODO: check if demo recording still works
-					if (record_demo)
-					{
-						bool new_input = false;
-
-						for (unsigned int i = 0; i < 8; i++)
-						{
-							bool temp = demo_keys & (1 << i);
-							if (temp != keysactive[keySettings[i]])
-								new_input = true;
-						}
-
-						demo_keys_wait++;
-
-						if (new_input)
-						{
-							Uint8 temp2[2] = { demo_keys_wait >> 8, demo_keys_wait };
-							fwrite_u8(temp2, 2, demo_file);
-
-							demo_keys = 0;
-							for (unsigned int i = 0; i < 8; i++)
-								demo_keys |= keysactive[keySettings[i]] ? (1 << i) : 0;
-
-							fwrite_u8(&demo_keys, 1, demo_file);
-
-							demo_keys_wait = 0;
-						}
-					}
+					if (recordDemo)
+						recordDemoKeys();
 				}
 
 				if (smoothies[9-1])
@@ -3859,7 +3739,7 @@ redo:
 		}
 	}
 
-	if (play_demo)
+	if (playDemo)
 		JE_dString(VGAScreen, 115, 10, miscText[7], SMALL_FONT_SHAPES); // insert coin
 
 	if (this_player->is_alive && !endLevel)

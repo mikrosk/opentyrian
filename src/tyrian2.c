@@ -20,6 +20,7 @@
 
 #include "animlib.h"
 #include "backgrnd.h"
+#include "demo.h"
 #include "episodes.h"
 #include "file.h"
 #include "font.h"
@@ -662,24 +663,21 @@ start_level:
 		setFrameSpeed(speed);
 	}
 
-	if (play_demo || record_demo)
+	if (playDemo)
 	{
-		if (demo_file)
-		{
-			fclose(demo_file);
-			demo_file = NULL;
-		}
+		endPlayDemo();
 
-		if (play_demo)
-		{
-			stop_song();
-			fade_black(10);
-		}
+		stop_song();
+		fade_black(10);
+	}
+	else if (recordDemo)
+	{
+		endRecordDemo();
 	}
 
 	difficultyLevel = oldDifficultyLevel;   /*Return difficulty to normal*/
 
-	if (!play_demo)
+	if (!playDemo)
 	{
 		if ((!all_players_dead() || normalBonusLevelCurrent || bonusLevelCurrent) && !playerEndLevel)
 		{
@@ -708,7 +706,7 @@ start_level:
 	}
 	doNotSaveBackup = false;
 
-	if (play_demo)
+	if (playDemo)
 		return;
 
 start_level_first:
@@ -726,7 +724,7 @@ start_level_first:
 	if (mainLevel == 0)  // if quit itemscreen
 		return;          // back to titlescreen
 
-	if (!play_demo)
+	if (!playDemo)
 		mouseSetRelative(true);
 
 	fade_song();
@@ -920,61 +918,10 @@ start_level_first:
 	set_volume(tyrMusicVolume, fxVolume);
 
 	/*Save backup game*/
-	if (!play_demo && !doNotSaveBackup)
+	if (!playDemo && !doNotSaveBackup)
 	{
 		temp = twoPlayerMode ? 22 : 11;
 		JE_saveGame(temp, "LAST LEVEL    ");
-	}
-
-	if (!play_demo && record_demo)
-	{
-		Uint8 new_demo_num = 0;
-
-		do
-		{
-			sprintf(tempStr, "demorec.%d", new_demo_num++);
-		} while (dir_file_exists(get_user_directory(), tempStr)); // until file doesn't exist
-
-		demo_file = dir_fopen_warn(get_user_directory(), tempStr, "wb");
-		if (!demo_file)
-			exit(1);
-
-		fwrite_u8_die(&episodeNum, 1, demo_file);
-
-		// Pad string buffer with NULs.
-		for (size_t i = 1; i < 10; ++i)
-			if (levelName[i - 1] == '\0')
-				levelName[i] = '\0';
-		fwrite_u8_die((Uint8 *)levelName, 10, demo_file);
-
-		fwrite_u8_die(&lvlFileNum, 1, demo_file);
-
-		fwrite_u8_die(&player[0].items.weapon[FRONT_WEAPON].id,  1, demo_file);
-		fwrite_u8_die(&player[0].items.weapon[REAR_WEAPON].id,   1, demo_file);
-		fwrite_u8_die(&player[0].items.super_arcade_mode,        1, demo_file);
-		fwrite_u8_die(&player[0].items.sidekick[LEFT_SIDEKICK],  1, demo_file);
-		fwrite_u8_die(&player[0].items.sidekick[RIGHT_SIDEKICK], 1, demo_file);
-		fwrite_u8_die(&player[0].items.generator,                1, demo_file);
-
-		fwrite_u8_die(&player[0].items.sidekick_level,           1, demo_file);
-		fwrite_u8_die(&player[0].items.sidekick_series,          1, demo_file);
-
-		fwrite_u8_die(&initial_episode_num,                      1, demo_file);
-
-		fwrite_u8_die(&player[0].items.shield,                   1, demo_file);
-		fwrite_u8_die(&player[0].items.special,                  1, demo_file);
-		fwrite_u8_die(&player[0].items.ship,                     1, demo_file);
-
-		for (uint i = 0; i < 2; ++i)
-			fwrite_u8_die(&player[0].items.weapon[i].power,      1, demo_file);
-
-		Uint8 unused[3] = { 0, 0, 0 };
-		fwrite_u8_die(unused, 3, demo_file);
-
-		fwrite_u8_die(&levelSong, 1, demo_file);
-
-		demo_keys = 0;
-		demo_keys_wait = 0;
 	}
 
 	twoPlayerLinked = false;
@@ -2150,14 +2097,14 @@ draw_player_shot_loop_end:
 			}
 			else
 			{
-				if (play_demo || normalBonusLevelCurrent || bonusLevelCurrent)
+				if (playDemo || normalBonusLevelCurrent || bonusLevelCurrent)
 					reallyEndLevel = true;
 				else
 					JE_dString(VGAScreen, 120, 60, miscText[21], FONT_SHAPES); // game over
 
 				if (firstGameOver)
 				{
-					if (!play_demo)
+					if (!playDemo)
 					{
 						play_song(SONG_GAMEOVER);
 						set_volume(tyrMusicVolume, fxVolume);
@@ -2165,7 +2112,7 @@ draw_player_shot_loop_end:
 					firstGameOver = false;
 				}
 
-				if (!play_demo)
+				if (!playDemo)
 				{
 					push_joysticks_as_keyboard();
 					handleSdlEvents();
@@ -2180,7 +2127,7 @@ draw_player_shot_loop_end:
 		}
 	}
 
-	if (play_demo) // input kills demo
+	if (playDemo) // input stops demo
 	{
 		push_joysticks_as_keyboard();
 		handleSdlEvents();
@@ -2189,7 +2136,7 @@ draw_player_shot_loop_end:
 		{
 			reallyEndLevel = true;
 
-			stopped_demo = true;
+			stoppedDemo = true;
 		}
 	}
 	else // input handling for pausing, menu, cheats
@@ -2421,7 +2368,7 @@ new_game:
 
 	gameLoaded = false;
 
-	if (!play_demo)
+	if (!playDemo)
 	{
 		do
 		{
@@ -2987,10 +2934,17 @@ new_game:
 		} while (!loadLevelOk);
 	}
 
-	if (play_demo)
-		load_next_demo();
+	if (playDemo)
+	{
+		beginPlayDemo();
+	}
 	else
+	{
 		fade_black(50);
+
+		if (recordDemo)
+			beginRecordDemo();
+	}
 
 	FILE *level_f = dir_fopen_die(data_dir(), levelFile, "rb");
 	fseek(level_f, lvlPos[(lvlFileNum-1) * 2], SEEK_SET);
@@ -3344,7 +3298,7 @@ bool titleScreen(void)
 			{
 				fade_black(15);
 
-				play_demo = true;
+				playDemo = true;
 				return true;
 			}
 
@@ -3541,7 +3495,7 @@ bool titleScreen(void)
 			{
 				fade_black(15);
 
-				play_demo = true;
+				playDemo = true;
 				return true;
 			}
 			case MENU_ITEM_QUIT:

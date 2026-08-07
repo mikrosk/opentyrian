@@ -208,14 +208,6 @@ JE_byte flash;
 JE_shortint flashChange;
 JE_byte displayTime;
 
-/* Demo Stuff */
-bool play_demo = false, record_demo = false, stopped_demo = false;
-Uint8 demo_num = 0;
-FILE *demo_file = NULL;
-
-Uint8 demo_keys;
-Uint16 demo_keys_wait;
-
 /* Sound Effects Queue */
 JE_byte soundQueue[8]; /* [0..7] */
 

@@ -19,13 +19,13 @@
 #include "params.h"
 
 #include "arg_parse.h"
+#include "demo.h"
 #include "file.h"
 #include "joystick.h"
 #include "logging.h"
 #include "loudness.h"
 #include "network.h"
 #include "opentyr.h"
-#include "varz.h"
 #include "xmas.h"
 
 #include <assert.h>
@@ -206,7 +206,7 @@ void JE_paramCheck(int argc, char *argv[])
 			break;
 			
 		case 'r':
-			record_demo = true;
+			recordDemo = true;
 			break;
 			
 		case 'l':
@@ -236,7 +236,7 @@ void JE_paramCheck(int argc, char *argv[])
 					richMode = true;
 					break;
 				case 1:
-					record_demo = true;
+					recordDemo = true;
 					break;
 				case 2:
 					ignore_joystick = true;

@@ -19,6 +19,7 @@
 #include "opentyr.h"
 
 #include "config.h"
+#include "demo.h"
 #include "destruct.h"
 #include "editship.h"
 #include "episodes.h"
@@ -798,7 +799,7 @@ int main(int argc, char *argv[])
 		logInfo("Audio is disabled.");
 	}
 
-	if (record_demo)
+	if (recordDemo)
 		logInfo("Game will be recorded.");
 
 	JE_loadExtraShapes();  /*Editship*/
@@ -818,18 +819,18 @@ int main(int argc, char *argv[])
 #endif
 	}
 
-#ifdef NDEBUG
-	if (!isNetworkGame)
-		intro_logos();
-#endif
-
 	for (; ; )
 	{
+#ifdef NDEBUG
+		if (!isNetworkGame && !stoppedDemo)
+			intro_logos();
+#endif
+
 		JE_initPlayerData();
 		JE_sortHighScores();
 
-		play_demo = false;
-		stopped_demo = false;
+		playDemo = false;
+		stoppedDemo = false;
 
 		gameLoaded = false;
 		jumpSection = false;

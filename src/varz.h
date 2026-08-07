@@ -250,13 +250,6 @@ extern JE_byte flash;
 extern JE_shortint flashChange;
 extern JE_byte displayTime;
 
-extern bool play_demo, record_demo, stopped_demo;
-extern Uint8 demo_num;
-extern FILE *demo_file;
-
-extern Uint8 demo_keys;
-extern Uint16 demo_keys_wait;
-
 extern JE_byte soundQueue[8];
 extern JE_boolean enemyContinualDamage;
 extern JE_boolean enemiesActive;
