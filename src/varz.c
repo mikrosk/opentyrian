@@ -367,11 +367,14 @@ void JE_getShipInfo(void)
 
 JE_word JE_SGr(JE_word ship, Sprite2_array **ptr)
 {
-	const JE_word GR[15] /* [1..15] */ = {233, 157, 195, 271, 81, 0, 119, 5, 43, 81, 119, 157, 195, 233, 271};
+	const JE_word GR[15] /* [1..15] */ =
+	{
+		233, 157, 195, 271, 81, 0, 119, 5, 43, 81, 119, 157, 195, 233, 271
+	};
 
 	JE_word tempW = extraShips[(ship - 1) * 15];
 	if (tempW > 7)
-		*ptr = extraShapes;
+		*ptr = &extraShapes;
 
 	return GR[tempW-1];
 }

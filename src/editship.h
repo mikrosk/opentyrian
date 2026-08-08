@@ -20,14 +20,14 @@
 #define EDITSHIP_H
 
 #include "opentyr.h"
+#include "sprite.h"
 
 // TODO: replace with less opaque type
 typedef JE_byte JE_ShipsType[154]; /* [1..154] */
 
 extern JE_boolean extraAvail;
 extern JE_ShipsType extraShips;
-extern void *extraShapes;
-extern JE_word extraShapeSize;
+extern Sprite2_array extraShapes;
 
 void JE_decryptShips(void);
 void JE_loadExtraShapes(void);

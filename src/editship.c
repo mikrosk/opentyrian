@@ -28,8 +28,7 @@ const JE_byte extraCryptKey[10] = { 58, 23, 16, 192, 254, 82, 113, 147, 62, 99 }
 
 JE_boolean extraAvail;
 JE_ShipsType extraShips;
-void *extraShapes;
-JE_word extraShapeSize;
+Sprite2_array extraShapes;
 
 void JE_decryptShips(void)
 {
@@ -81,9 +80,9 @@ void JE_loadExtraShapes(void)
 	if (f)
 	{
 		extraAvail = true;
-		extraShapeSize = ftell_eof(f) - sizeof(extraShips);
-		extraShapes = malloc(extraShapeSize);
-		fread_die(extraShapes, extraShapeSize, 1, f);
+		extraShapes.size = ftell_eof(f) - sizeof(extraShips);
+		extraShapes.data = malloc(extraShapes.size);
+		fread_die(extraShapes.data, extraShapes.size, 1, f);
 		fread_die(extraShips, sizeof(extraShips), 1, f);
 		JE_decryptShips();
 		fclose(f);
