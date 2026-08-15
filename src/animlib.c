@@ -20,6 +20,7 @@
 
 #include "file.h"
 #include "keyboard.h"
+#include "logging.h"
 #include "memreader.h"
 #include "memwriter.h"
 #include "nortsong.h"
@@ -41,28 +42,27 @@ typedef struct PageDescriptor
 	Uint16 recordsSize;
 } PageDescriptor;
 
-static bool readFileHeader(FileHeader *fileHeader, FILE *f)
+static void readFileHeader(FileHeader *fileHeader, File *file)
 {
 	Uint8 data[256];
-	size_t size = fread(data, 1, sizeof(data), f);
+	fileReadExactly(file, data, sizeof data);
 
-	MemReader reader = { data, size, false };
+	MemReader reader = { data, sizeof data, false };
 
 	memReaderSkip(&reader, 6);
 	fileHeader->pageCount = memReadU16(&reader);
 	fileHeader->recordCount = memReadU32(&reader);
 	memReaderSkip(&reader, 244);
 
-	assert(reader.size == 0 || reader.error);
-	return !reader.error;
+	assert(reader.size == 0 && !reader.error);
 }
 
-static bool readPalette(SDL_Color *palette, FILE *f)
+static void readPalette(SDL_Color *palette, File *file)
 {
 	Uint8 data[4 * 256];
-	size_t size = fread(data, 1, sizeof(data), f);
+	fileReadExactly(file, data, sizeof data);
 
-	MemReader reader = { data, size, false };
+	MemReader reader = { data, sizeof data, false };
 
 	for (size_t i = 0; i < 256; ++i)
 	{
@@ -72,16 +72,15 @@ static bool readPalette(SDL_Color *palette, FILE *f)
 		(void)memReadU8(&reader);
 	}
 
-	assert(reader.size == 0 || reader.error);
-	return !reader.error;
+	assert(reader.size == 0 && !reader.error);
 }
 
-static bool readPageDescriptors(PageDescriptor *pageDescriptors, FILE *f)
+static void readPageDescriptors(PageDescriptor *pageDescriptors, File *file)
 {
 	Uint8 data[6 * 256];
-	size_t size = fread(data, 1, sizeof(data), f);
+	fileReadExactly(file, data, sizeof data);
 
-	MemReader reader = { data, size, false };
+	MemReader reader = { data, sizeof data, false };
 
 	for (size_t i = 0; i < 256; ++i)
 	{
@@ -90,8 +89,7 @@ static bool readPageDescriptors(PageDescriptor *pageDescriptors, FILE *f)
 		pageDescriptors[i].recordsSize = memReadU16(&reader);
 	}
 
-	assert(reader.size == 0 || reader.error);
-	return !reader.error;
+	assert(reader.size == 0 && !reader.error);
 }
 
 static void decodeRunSkipDump(MemWriter *writer, MemReader *reader)
@@ -149,15 +147,22 @@ void playAnim(const char *filename, Uint8 startingFrame, Uint8 speed)
 	JE_clr256(VGAScreen);
 	JE_showVGA();
 
-	FILE *f = dir_fopen(data_dir(), filename, "rb");
-	if (f == NULL)
+	File file = dataFileOpen(filename, "rb");
+	if (file.error)
+	{
+		logWarn("Failed to open file '%s': %s", filename, fileGetError(&file));
 		return;
+	}
 
 	FileHeader fileHeader;
-	bool success = readFileHeader(&fileHeader, f);
+	readFileHeader(&fileHeader, &file);
+	if (file.error)
+		goto fail;
 
 	SDL_Color palette[256];
-	success = success && readPalette(palette, f);
+	readPalette(palette, &file);
+	if (file.error)
+		goto fail;
 
 	// The file contains a bunch of fixed-size pages.  Each page contains a sequence of records
 	// (each corresponding to a frame of the animation).  The records within a page are in order.
@@ -166,9 +171,8 @@ void playAnim(const char *filename, Uint8 startingFrame, Uint8 speed)
 	// to be relied upon.)
 
 	PageDescriptor pageDescriptors[256];
-	success = success && readPageDescriptors(pageDescriptors, f);
-
-	if (!success)
+	readPageDescriptors(pageDescriptors, &file);
+	if (file.error)
 		goto fail;
 
 	palette[0].r = 0;
@@ -208,10 +212,10 @@ void playAnim(const char *filename, Uint8 startingFrame, Uint8 speed)
 				if (record >= firstRecord &&
 				    record - firstRecord < recordCount)
 				{
-					fseek(f, 0xB00 + (i << 16), SEEK_SET);
+					fileSetPosition(&file, 0xB00 + (i << 16));
 
 					size_t pageSize = 8 + 2 * (size_t)recordCount + recordsSize;
-					size_t size = fread(data, 1, MIN(pageSize, dataSize), f);
+					size_t size = fileReadAtMost(&file, data, MIN(pageSize, dataSize));
 
 					MemReader pageReader = { data, size, size != pageSize };
 
@@ -266,5 +270,8 @@ void playAnim(const char *filename, Uint8 startingFrame, Uint8 speed)
 	free(data);
 
 fail:
-	fclose(f);
+	if (file.error)
+		logError("Failed to read from file '%s': %s", filename, fileGetError(&file));
+
+	fileClose(&file);
 }

@@ -123,6 +123,26 @@ void memReadU16Array(MemReader *reader, uint16_t *values, size_t count)
 	}
 }
 
+static inline uint16_t loadU16BE(const uint8_t *data)
+{
+	// One byte at a time because some platforms do not allow unaligned loads.
+	return ((uint16_t)data[0] << 8) |
+	       ((uint16_t)data[1]);
+}
+
+uint16_t memReadU16BE(MemReader *reader)
+{
+	reader->error |= reader->size < 2;
+
+	if (reader->error)
+		return 0;
+
+	uint16_t value = loadU16BE(reader->data);
+	reader->data += 2;
+	reader->size -= 2;
+	return value;
+}
+
 static inline uint32_t loadU32(const uint8_t *data)
 {
 	// One byte at a time because some platforms do not allow unaligned loads.

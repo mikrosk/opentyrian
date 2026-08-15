@@ -747,9 +747,24 @@ int main(int argc, char *argv[])
 
 	JE_paramCheck(argc, argv);
 
-	if (data_dir()[0] == '\0')
+	if (!findDataFiles())
 	{
-		logFatal("The Tyrian " TYRIAN_VERSION " data files could not be found.");
+		logFatal("The Tyrian data files were not found.  OpenTyrian requires the Tyrian v2.0/v2.1 data files.");
+		return EXIT_FAILURE;
+	}
+
+	File file = dataFileOpen("tyrian.shp", "rb");
+	Uint16 temp = fileReadU16(&file);
+	fileClose(&file);
+
+	if (temp == 11)
+	{
+		logFatal("The Tyrian v1.0/v1.1 data files were found.  OpenTyrian requires the Tyrian v2.0/v2.1 data files.");
+		return EXIT_FAILURE;
+	}
+	else if (temp == 13)
+	{
+		logFatal("The Tyrian 2000 data files were found.  OpenTyrian requires the Tyrian v2.0/v2.1 data files.");
 		return EXIT_FAILURE;
 	}
 
@@ -761,14 +776,14 @@ int main(int argc, char *argv[])
 	if (has_mouse)
 		logInfo("Assuming mouse detected.");  // SDL can't tell us if there isn't one.
 
-	if (xmas && (!dir_file_exists(data_dir(), "tyrianc.shp") || !dir_file_exists(data_dir(), "voicesc.snd")))
+	if (xmas && (!dataFileExists("tyrianc.shp") || !dataFileExists("voicesc.snd")))
 	{
 		xmas = false;
 
 		logWarn("Christmas is missing.");
 	}
 
-	JE_loadPals();
+	loadPals();
 	JE_loadMainShapeTables(xmas ? "tyrianc.shp" : "tyrian.shp");
 
 	if (xmas && !xmas_prompt())
@@ -790,8 +805,6 @@ int main(int argc, char *argv[])
 
 		init_audio();
 
-		load_music();
-
 		loadSndFile(xmas);
 	}
 	else
@@ -802,7 +815,7 @@ int main(int argc, char *argv[])
 	if (recordDemo)
 		logInfo("Game will be recorded.");
 
-	JE_loadExtraShapes();  /*Editship*/
+	loadExtraShapes();  /*Editship*/
 
 	JE_loadHelpText();
 

@@ -138,6 +138,25 @@ void memWriteU16Array(MemWriter *writer, const uint16_t *values, size_t count)
 	}
 }
 
+static inline void storeU16BE(uint8_t *data, uint16_t value)
+{
+	// One byte at a time because some platforms do not allow unaligned stores.
+	data[0] = value >> 8;
+	data[1] = value;
+}
+
+void memWriteU16BE(MemWriter *writer, uint16_t value)
+{
+	writer->error |= writer->size < 2;
+
+	if (writer->error)
+		return;
+
+	storeU16BE(writer->data, value);
+	writer->data += 2;
+	writer->size -= 2;
+}
+
 static inline void storeU32(uint8_t *data, uint32_t value)
 {
 	// One byte at a time because some platforms do not allow unaligned stores.

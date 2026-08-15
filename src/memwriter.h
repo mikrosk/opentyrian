@@ -44,6 +44,7 @@ void memWriteU8(MemWriter *writer, uint8_t value);
 void memWriteU8Array(MemWriter *writer, const uint8_t *values, size_t count);
 void memWriteU16(MemWriter *writer, uint16_t value);
 void memWriteU16Array(MemWriter *writer, const uint16_t *values, size_t count);
+void memWriteU16BE(MemWriter *writer, uint16_t value);
 void memWriteU32(MemWriter *writer, uint32_t value);
 void memWriteU32Array(MemWriter *writer, const uint32_t *values, size_t count);
 

@@ -38,6 +38,7 @@ uint8_t memReadU8(MemReader *reader);
 void memReadU8Array(MemReader *reader, uint8_t *values, size_t count);
 uint16_t memReadU16(MemReader *reader);
 void memReadU16Array(MemReader *reader, uint16_t *values, size_t count);
+uint16_t memReadU16BE(MemReader *reader);
 uint32_t memReadU32(MemReader *reader);
 void memReadU32Array(MemReader *reader, uint32_t *values, size_t count);
 

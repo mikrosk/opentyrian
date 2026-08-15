@@ -148,8 +148,6 @@ extern Config opentyrian_config;
 void JE_initProcessorType(void);
 void JE_setNewGameSpeed(void);
 
-const char *get_user_directory(void);
-
 void loadConfiguration(void);
 void saveConfiguration(void);
 

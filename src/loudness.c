@@ -62,9 +62,8 @@ static int samplesPerLdsUpdateFrac;
 static int samplesUntilLdsUpdate = 0;
 static int samplesUntilLdsUpdateFrac = 0;
 
-static FILE *music_file = NULL;
-static Uint32 *song_offset;
-static Uint16 song_count = 0;
+static long *songPositions = NULL;
+static Uint16 songsCount = 0;
 
 #define CHANNEL_COUNT 8
 static const Sint16 *channelSamples[CHANNEL_COUNT];
@@ -234,34 +233,60 @@ void deinit_audio(void)
 	lds_free();
 }
 
-void load_music(void)  // FKA NortSong.loadSong
-{
-	if (music_file == NULL)
-	{
-		music_file = dir_fopen_die(data_dir(), "music.mus", "rb");
-
-		fread_u16_die(&song_count, 1, music_file);
-
-		song_offset = malloc((song_count + 1) * sizeof(*song_offset));
-
-		fread_u32_die(song_offset, song_count, music_file);
-
-		song_offset[song_count] = ftell_eof(music_file);
-	}
-}
-
 static void load_song(unsigned int song_num)  // FKA NortSong.loadSong
 {
-	if (song_num < song_count)
+	const char *filename = "music.mus";
+
+	File file = dataFileOpen(filename, "rb");
+	if (file.error)
 	{
-		unsigned int song_size = song_offset[song_num + 1] - song_offset[song_num];
-		if (!lds_load(music_file, song_offset[song_num], song_size))
-			logError("Failed to load song.");
+		logFatal("Failed to open file '%s': %s", filename, fileGetError(&file));
+		exit(EXIT_FAILURE);
 	}
-	else
+
+	static bool first = true;
+	if (first)
 	{
-		logWarn("Failed to load song %d.", song_num + 1);
+		first = false;
+
+		songsCount = fileReadU16(&file);
+
+		size_t songPositionsCount = songsCount + 1;
+		songPositions = malloc(sizeof *songPositions * songPositionsCount);
+
+		for (size_t i = 0; i < songsCount; ++i)
+			songPositions[i] = fileReadU32(&file);
+
+		songPositions[songsCount] = fileGetLength(&file);
+
+		if (file.error)
+			logError("Failed to read from file '%s': %s", filename, fileGetError(&file));
 	}
+
+	if (song_num >= songsCount)
+	{
+		logError("Attempted to load song %u, which does not exist.", song_num);
+		return;
+	}
+
+	long position = songPositions[song_num];
+	long endPosition = songPositions[song_num + 1];
+	size_t size = endPosition > position ? endPosition - position : 0;
+
+	fileSetPosition(&file, position);
+
+	void *data = malloc(size);
+	fileReadExactly(&file, data, size);
+
+	if (file.error)
+		logError("Failed to read from file '%s': %s", filename, fileGetError(&file));
+
+	fileClose(&file);
+
+	if (!lds_load(data, size))
+		logError("Failed to load song %u.", song_num);
+
+	free(data);
 }
 
 void play_song(unsigned int song_num)  // FKA NortSong.playSong

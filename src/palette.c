@@ -20,34 +20,46 @@
 
 #include "file.h"
 #include "keyboard.h"
+#include "logging.h"
 #include "nortsong.h"
 #include "opentyr.h"
 #include "video.h"
 
 #include <assert.h>
+#include <stdlib.h>
 
 static Uint32 rgb_to_yuv(int r, int g, int b);
 
-#define PALETTE_COUNT 23
-
-Palette palettes[PALETTE_COUNT];
-int palette_count;
+Palette palettes[23];
+size_t palettesCount = 0;
 
 static Palette palette;
 Uint32 rgb_palette[256], yuv_palette[256];
 
 Palette colors;
 
-void JE_loadPals(void)
+void loadPals(void)
 {
-	FILE *f = dir_fopen_die(data_dir(), "palette.dat", "rb");
-	
-	palette_count = ftell_eof(f) / (256 * 3);
-	assert(palette_count == PALETTE_COUNT);
-	
-	for (int p = 0; p < palette_count; ++p)
+	const char *filename = "palette.dat";
+
+	File file = dataFileOpen(filename, "rb");
+	if (file.error)
 	{
-		for (int i = 0; i < 256; ++i)
+		logFatal("Failed to open file '%s': %s", filename, fileGetError(&file));
+		exit(EXIT_FAILURE);
+	}
+
+	palettesCount = fileGetLength(&file) / (256 * 3);
+	assert(palettesCount == COUNTOF(palettes));
+	palettesCount = MIN(palettesCount, COUNTOF(palettes));
+
+	for (size_t p = 0; p < palettesCount; ++p)
+	{
+		Uint8 data[3 * 256];
+		fileReadExactly(&file, data, sizeof data);
+
+		Uint8 *rgb = data;
+		for (size_t i = 0; i < 256; ++i, rgb += 3)
 		{
 			// The VGA hardware palette used only 6 bits per component, so the values need to be rescaled to
 			// 8 bits. The naive way to do this is to simply do (c << 2), padding it with 0's, however this
@@ -55,15 +67,19 @@ void JE_loadPals(void)
 			// bits of the original value instead. This ensures that the value goes to 255 as the original goes
 			// to 63.
 
-			Uint8 rgb[3];
-			fread_u8_die(rgb, 3, f);
 			palettes[p][i].r = (rgb[0] << 2) | (rgb[0] >> 4);
 			palettes[p][i].g = (rgb[1] << 2) | (rgb[1] >> 4);
 			palettes[p][i].b = (rgb[2] << 2) | (rgb[2] >> 4);
 		}
 	}
 	
-	fclose(f);
+	if (file.error)
+	{
+		logFatal("Failed to read from file '%s': %s", filename, fileGetError(&file));
+		exit(EXIT_FAILURE);
+	}
+
+	fileClose(&file);
 }
 
 void set_palette(Palette colors, unsigned int first_color, unsigned int last_color)

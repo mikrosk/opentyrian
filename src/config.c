@@ -32,22 +32,12 @@
 #include "video.h"
 #include "video_scale.h"
 
-#include <errno.h>
-
-#ifdef _MSC_VER
-#include <direct.h>
-#define mkdir _mkdir
-#else
-#include <sys/stat.h>
-#include <unistd.h>
-#endif
-
 #define SAVE_FILES_SIZE (109 * SAVE_FILES_NUM)
 #define SAVE_FILE_SIZE (SAVE_FILES_SIZE + 100)
 
 /* Configuration Load/Save handler */
 
-static const JE_byte cryptKey[10] = /* [1..10] */
+static const Uint8 cryptKey[10] /* [1..10] */ =
 {
 	15, 50, 89, 240, 147, 34, 86, 9, 32, 208
 };
@@ -273,7 +263,9 @@ static Uint8 inputDevice2 = 0;
 static const Uint8 defaultDosKeySettings[8] = { 72, 80, 75, 77, 57, 28, 29, 56 };  // FKA defaultKeySettings
 static Uint8 dosKeySettings[8] = { 0 };  // FKA keySettings
 
-bool load_opentyrian_config(void)
+static const char *const opentyrianConfigFilename = "opentyrian.cfg";
+
+static void loadOpenTyrianConfig(void)
 {
 	// defaults
 	fullscreen_enabled = false;
@@ -281,17 +273,27 @@ bool load_opentyrian_config(void)
 	memcpy(keySettings, defaultKeySettings, sizeof(keySettings));
 	
 	Config *config = &opentyrian_config;
-	
-	FILE *file = dir_fopen_warn(get_user_directory(), "opentyrian.cfg", "r");
-	if (file == NULL)
-		return false;
-	
-	if (!config_parse(config, file))
+
+	File file = userFileOpen(opentyrianConfigFilename, "r");
+	if (file.error)
 	{
-		fclose(file);
-		
-		return false;
+		logWarn("Failed to open '%s': %s", opentyrianConfigFilename, fileGetError(&file));
+
+		return;
 	}
+	
+	bool success = config_parse(config, file.f);
+	file.error |= ferror(file.f) != 0;
+
+	if (file.error)
+		logError("Failed to read from '%s': %s", opentyrianConfigFilename, fileGetError(&file));
+	else if (!success)
+		logError("Failed to parse '%s'.", opentyrianConfigFilename);
+
+	fileClose(&file);
+
+	if (!success)
+		return;
 	
 	ConfigSection *section;
 	
@@ -319,13 +321,9 @@ bool load_opentyrian_config(void)
 			}
 		}
 	}
-
-	fclose(file);
-	
-	return true;
 }
 
-bool save_opentyrian_config(void)
+static void saveOpenTyrianConfig(void)
 {
 	Config *config = &opentyrian_config;
 	
@@ -349,24 +347,23 @@ bool save_opentyrian_config(void)
 		config_set_string_option(section, keySettingNames[i], keyName);
 	}
 
-#ifndef TARGET_WIN32
-	mkdir(get_user_directory(), 0700);
-#else
-	mkdir(get_user_directory());
-#endif
+	File file = userFileOpen(opentyrianConfigFilename, "w");
+	if (file.error)
+	{
+		logError("Failed to open '%s': %s", opentyrianConfigFilename, fileGetError(&file));
+
+		return;
+	}
 	
-	FILE *file = dir_fopen(get_user_directory(), "opentyrian.cfg", "w");
-	if (file == NULL)
-		return false;
-	
-	config_write(config, file);
-	
-#ifndef TARGET_WIN32
-	fsync(fileno(file));
-#endif
-	fclose(file);
-	
-	return true;
+	config_write(config, file.f);
+	file.error |= ferror(file.f) != 0;
+
+	fileFlush(&file);
+
+	if (file.error)
+		logError("Failed to write to '%s': %s", opentyrianConfigFilename, fileGetError(&file));
+
+	fileClose(&file);
 }
 
 static void playeritems_to_pitems(JE_PItemsType pItems, PlayerItems *items, JE_byte initial_episode_num)
@@ -404,6 +401,8 @@ static void pitems_to_playeritems(PlayerItems *items, JE_PItemsType pItems, JE_b
 
 void JE_saveGame(JE_byte slot, const char *name)
 {
+	assert(strlen(name) >= 14);
+
 	saveFiles[slot-1].initialDifficulty = initialDifficulty;
 	saveFiles[slot-1].gameHasRepeated = gameHasRepeated;
 	saveFiles[slot-1].level = saveLevel;
@@ -447,7 +446,8 @@ void JE_saveGame(JE_byte slot, const char *name)
 	saveFiles[slot-1].input1 = inputDevice[0];
 	saveFiles[slot-1].input2 = inputDevice[1];
 
-	strcpy(saveFiles[slot-1].name, name);
+	memcpy(saveFiles[slot-1].name, name, 14);
+	saveFiles[slot-1].name[14] = '\0';
 	
 	for (uint port = 0; port < 2; ++port)
 	{
@@ -642,74 +642,50 @@ void JE_setNewGameSpeed(void)
 	setFrameCount(frameCountMax);
 }
 
-const char *get_user_directory(void)
-{
-	static char user_dir[500] = "";
-	
-	if (strlen(user_dir) == 0)
-	{
-#ifndef TARGET_WIN32
-		char *xdg_config_home = getenv("XDG_CONFIG_HOME");
-		if (xdg_config_home != NULL)
-		{
-			snprintf(user_dir, sizeof(user_dir), "%s/opentyrian", xdg_config_home);
-		}
-		else
-		{
-			char *home = getenv("HOME");
-			if (home != NULL)
-			{
-				snprintf(user_dir, sizeof(user_dir), "%s/.config/opentyrian", home);
-			}
-			else
-			{
-				strcpy(user_dir, ".");
-			}
-		}
-#else
-		strcpy(user_dir, ".");
-#endif
-	}
-	
-	return user_dir;
-}
+static const char *const tyrianConfigFilename = "tyrian.cfg";
 
 void loadConfiguration(void)
 {
 	bool invalid = false;
 
-	FILE *f = dir_fopen_warn(get_user_directory(), "tyrian.cfg", "rb");
-	if (f == NULL)
+	File file = userFileOpen(tyrianConfigFilename, "rb");
+	if (file.error)
 	{
+		logWarn("Failed to open '%s': %s", tyrianConfigFilename, fileGetError(&file));
+
 		invalid = true;
 	}
 	else
 	{
 		Uint8 data[28];
-		size_t size = fread(data, 1, sizeof(data), f);
+		fileReadExactly(&file, data, sizeof data);
 
-		fseek(f, 0, SEEK_END);
-		invalid |= ftell(f) != sizeof(data);
+		invalid |= fileGetLength(&file) != sizeof data;
 
-		fclose(f);
+		invalid |= file.error;
 
-		MemReader reader = { data, size, false };
+		if (file.error)
+			logError("Failed to read from '%s': %s", tyrianConfigFilename, fileGetError(&file));
 
-		background2 = memReadBool(&reader);
-		gameSpeed = memReadU8(&reader);
-		inputDevice_ = memReadU8(&reader);
-		jConfigure = memReadU8(&reader);
-		versionNum = memReadU8(&reader);
-		processorType = memReadU8(&reader);
-		midiPort = memReadU8(&reader);
-		soundEffects = memReadU8(&reader);
+		fileClose(&file);
+
+		MemReader reader = { data, sizeof data, false };
+
+		background2     = memReadBool(&reader);
+		gameSpeed       = memReadU8(&reader);
+		inputDevice_    = memReadU8(&reader);
+		jConfigure      = memReadU8(&reader);
+		versionNum      = memReadU8(&reader);
+		processorType   = memReadU8(&reader);
+		midiPort        = memReadU8(&reader);
+		soundEffects    = memReadU8(&reader);
 		gammaCorrection = memReadU8(&reader);
 		difficultyLevel = memReadS8(&reader);
 		memReadU8Array(&reader, joyButtonAssign, COUNTOF(joyButtonAssign));
-		tyrMusicVolume = memReadU16(&reader);
-		fxVolume = memReadU16(&reader);
-		inputDevice1 = memReadU8(&reader);
-		inputDevice2 = memReadU8(&reader);
+		tyrMusicVolume  = memReadU16(&reader);
+		fxVolume        = memReadU16(&reader);
+		inputDevice1    = memReadU8(&reader);
+		inputDevice2    = memReadU8(&reader);
 		memReadU8Array(&reader, dosKeySettings, COUNTOF(dosKeySettings));
 
 		assert(reader.size == 0 || reader.error);
@@ -729,7 +705,7 @@ void loadConfiguration(void)
 
 	if (invalid)
 	{
-		logWarn("'tyrian.cfg' is invalid or missing.");
+		logWarn("'%s' is invalid or missing.", tyrianConfigFilename);
 		
 		background2 = true;
 		gameSpeed = 4;
@@ -749,7 +725,7 @@ void loadConfiguration(void)
 		memcpy(&dosKeySettings, &defaultDosKeySettings, sizeof(dosKeySettings));
 	}
 	
-	load_opentyrian_config();
+	loadOpenTyrianConfig();
 
 	set_volume(tyrMusicVolume, fxVolume);
 
@@ -760,47 +736,47 @@ void saveConfiguration(void)
 {
 	Uint8 data[28];
 
-	MemWriter writer = { data, sizeof(data), false };
+	MemWriter writer = { data, sizeof data, false };
 
-	memWriteBool(&writer, background2);
-	memWriteU8(&writer, gameSpeed);
-	memWriteU8(&writer, inputDevice_);
-	memWriteU8(&writer, jConfigure);
-	memWriteU8(&writer, versionNum);
-	memWriteU8(&writer, processorType);
-	memWriteU8(&writer, midiPort);
-	memWriteU8(&writer, soundEffects);
-	memWriteU8(&writer, gammaCorrection);
-	memWriteS8(&writer, difficultyLevel);
+	memWriteBool(&writer,    background2);
+	memWriteU8(&writer,      gameSpeed);
+	memWriteU8(&writer,      inputDevice_);
+	memWriteU8(&writer,      jConfigure);
+	memWriteU8(&writer,      versionNum);
+	memWriteU8(&writer,      processorType);
+	memWriteU8(&writer,      midiPort);
+	memWriteU8(&writer,      soundEffects);
+	memWriteU8(&writer,      gammaCorrection);
+	memWriteS8(&writer,      difficultyLevel);
 	memWriteU8Array(&writer, joyButtonAssign, COUNTOF(joyButtonAssign));
-	memWriteU16(&writer, tyrMusicVolume);
-	memWriteU16(&writer, fxVolume);
-	memWriteU8(&writer, inputDevice1);
-	memWriteU8(&writer, inputDevice2);
+	memWriteU16(&writer,     tyrMusicVolume);
+	memWriteU16(&writer,     fxVolume);
+	memWriteU8(&writer,      inputDevice1);
+	memWriteU8(&writer,      inputDevice2);
 	memWriteU8Array(&writer, dosKeySettings, COUNTOF(dosKeySettings));
 
 	assert(writer.size == 0 && !writer.error);
 
-#ifndef TARGET_WIN32
-	mkdir(get_user_directory(), 0700);
-#else
-	mkdir(get_user_directory());
-#endif
-
-	FILE *f = dir_fopen_warn(get_user_directory(), "tyrian.cfg", "wb");
-	if (f != NULL)
+	File file = userFileOpen(tyrianConfigFilename, "wb");
+	if (file.error)
 	{
-		if (fwrite(data, 1, sizeof(data), f) != sizeof(data))
-			logWarn("Failed to write to 'tyrian.cfg': %s", strerror(errno));
-
-#ifndef TARGET_WIN32
-		fsync(fileno(f));
-#endif
-		fclose(f);
+		logError("Failed to open '%s': %s", tyrianConfigFilename, fileGetError(&file));
 	}
-	
-	save_opentyrian_config();
+	else
+	{
+		fileWrite(&file, data, sizeof data);
+		fileFlush(&file);
+
+		if (file.error)
+			logError("Failed to write to '%s': %s", tyrianConfigFilename, fileGetError(&file));
+
+		fileClose(&file);
+	}
+
+	saveOpenTyrianConfig();
 }
+
+static const char *const tyrianSaveFilename = "tyrian.sav";
 
 static bool decryptSaveData(Uint8 *data);
 
@@ -808,50 +784,57 @@ void loadSaves(void)
 {
 	bool invalid = false;
 
-	FILE *f = dir_fopen_warn(get_user_directory(), "tyrian.sav", "rb");
-	if (f == NULL)
+	File file = userFileOpen(tyrianSaveFilename, "rb");
+	if (file.error)
 	{
+		logWarn("Failed to open '%s': %s", tyrianSaveFilename, fileGetError(&file));
+
 		invalid = true;
 	}
 	else
 	{
 		Uint8 data[SAVE_FILE_SIZE + 4];
-		size_t size = fread(data, 1, sizeof(data), f);
+		fileReadExactly(&file, data, sizeof data);
 
-		fclose(f);
+		invalid |= file.error;
 
-		invalid = !decryptSaveData(data);
+		if (file.error)
+			logError("Failed to read from '%s': %s", tyrianSaveFilename, fileGetError(&file));
 
-		MemReader reader = { data, size, false };
+		fileClose(&file);
+
+		invalid |= !decryptSaveData(data);
+
+		MemReader reader = { data, sizeof data, false };
 
 		for (size_t i = 0; i < COUNTOF(saveFiles); ++i)
 		{
-			saveFiles[i].encode = memReadU16(&reader);
-			saveFiles[i].level = memReadU16(&reader);
+			saveFiles[i].encode            = memReadU16(&reader);
+			saveFiles[i].level             = memReadU16(&reader);
 			memReadU8Array(&reader, saveFiles[i].items, COUNTOF(saveFiles[i].items));
-			saveFiles[i].score = memReadU32(&reader);
-			saveFiles[i].score2 = memReadU32(&reader);
-			Uint8 levelNameLen = memReadU8(&reader);
+			saveFiles[i].score             = memReadU32(&reader);
+			saveFiles[i].score2            = memReadU32(&reader);
+			Uint8 levelNameLen             = memReadU8(&reader);
 			memReadCharArray(&reader, saveFiles[i].levelName, 9);
 			saveFiles[i].levelName[MIN(levelNameLen, 9)] = '\0';
 			memReadCharArray(&reader, saveFiles[i].name, 14);
 			saveFiles[i].name[14] = '\0';
-			saveFiles[i].cubes = memReadU8(&reader);
+			saveFiles[i].cubes             = memReadU8(&reader);
 			memReadU8Array(&reader, saveFiles[i].power, COUNTOF(saveFiles[i].power));
-			saveFiles[i].episode = memReadU8(&reader);
+			saveFiles[i].episode           = memReadU8(&reader);
 			memReadU8Array(&reader, saveFiles[i].lastItems, COUNTOF(saveFiles[i].lastItems));
-			saveFiles[i].difficulty = memReadU8(&reader);
-			saveFiles[i].secretHint = memReadU8(&reader);
-			saveFiles[i].input1 = memReadU8(&reader);
-			saveFiles[i].input2 = memReadU8(&reader);
-			saveFiles[i].gameHasRepeated = memReadBool(&reader);
+			saveFiles[i].difficulty        = memReadU8(&reader);
+			saveFiles[i].secretHint        = memReadU8(&reader);
+			saveFiles[i].input1            = memReadU8(&reader);
+			saveFiles[i].input2            = memReadU8(&reader);
+			saveFiles[i].gameHasRepeated   = memReadBool(&reader);
 			saveFiles[i].initialDifficulty = memReadU8(&reader);
-			saveFiles[i].highScore1 = memReadS32(&reader);
-			saveFiles[i].highScore2 = memReadS32(&reader);
-			Uint8 highScoreNameLen = memReadU8(&reader);
+			saveFiles[i].highScore1        = memReadS32(&reader);
+			saveFiles[i].highScore2        = memReadS32(&reader);
+			Uint8 highScoreNameLen         = memReadU8(&reader);
 			memReadCharArray(&reader, saveFiles[i].highScoreName, 29);
 			saveFiles[i].highScoreName[MIN(highScoreNameLen, 29)] = '\0';
-			saveFiles[i].highScoreDiff = memReadU8(&reader);
+			saveFiles[i].highScoreDiff     = memReadU8(&reader);
 		}
 
 		memReadU8Array(&reader, editorItemAvail, COUNTOF(editorItemAvail));
@@ -864,7 +847,7 @@ void loadSaves(void)
 
 	if (invalid)
 	{
-		logWarn("'tyrian.sav' is invalid or missing.");
+		logWarn("'%s' is invalid or missing.", tyrianSaveFilename);
 
 		memset(saveFiles, 0, sizeof(saveFiles));
 
@@ -902,33 +885,33 @@ void saveSaves(void)
 {
 	Uint8 data[SAVE_FILE_SIZE + 4];
 
-	MemWriter writer = { data, sizeof(data), false };
+	MemWriter writer = { data, sizeof data, false };
 
 	for (size_t i = 0; i < COUNTOF(saveFiles); ++i)
 	{
-		memWriteU16(&writer, saveFiles[i].encode);
-		memWriteU16(&writer, saveFiles[i].level);
-		memWriteU8Array(&writer, saveFiles[i].items, COUNTOF(saveFiles[i].items));
-		memWriteU32(&writer, saveFiles[i].score);
-		memWriteU32(&writer, saveFiles[i].score2);
-		memWriteU8(&writer, strlen(saveFiles[i].levelName));
+		memWriteU16(&writer,       saveFiles[i].encode);
+		memWriteU16(&writer,       saveFiles[i].level);
+		memWriteU8Array(&writer,   saveFiles[i].items, COUNTOF(saveFiles[i].items));
+		memWriteU32(&writer,       saveFiles[i].score);
+		memWriteU32(&writer,       saveFiles[i].score2);
+		memWriteU8(&writer,        strlen(saveFiles[i].levelName));
 		memWriteCharArray(&writer, saveFiles[i].levelName, 9);
 		memWriteCharArray(&writer, saveFiles[i].name, 14);
-		memWriteU8(&writer, saveFiles[i].cubes);
-		memWriteU8Array(&writer, saveFiles[i].power, COUNTOF(saveFiles[i].power));
-		memWriteU8(&writer, saveFiles[i].episode);
-		memWriteU8Array(&writer, saveFiles[i].lastItems, COUNTOF(saveFiles[i].lastItems));
-		memWriteU8(&writer, saveFiles[i].difficulty);
-		memWriteU8(&writer, saveFiles[i].secretHint);
-		memWriteU8(&writer, saveFiles[i].input1);
-		memWriteU8(&writer, saveFiles[i].input2);
-		memWriteBool(&writer, saveFiles[i].gameHasRepeated);
-		memWriteU8(&writer, saveFiles[i].initialDifficulty);
-		memWriteS32(&writer, saveFiles[i].highScore1);
-		memWriteS32(&writer, saveFiles[i].highScore2);
-		memWriteU8(&writer, strlen(saveFiles[i].highScoreName));
+		memWriteU8(&writer,        saveFiles[i].cubes);
+		memWriteU8Array(&writer,   saveFiles[i].power, COUNTOF(saveFiles[i].power));
+		memWriteU8(&writer,        saveFiles[i].episode);
+		memWriteU8Array(&writer,   saveFiles[i].lastItems, COUNTOF(saveFiles[i].lastItems));
+		memWriteU8(&writer,        saveFiles[i].difficulty);
+		memWriteU8(&writer,        saveFiles[i].secretHint);
+		memWriteU8(&writer,        saveFiles[i].input1);
+		memWriteU8(&writer,        saveFiles[i].input2);
+		memWriteBool(&writer,      saveFiles[i].gameHasRepeated);
+		memWriteU8(&writer,        saveFiles[i].initialDifficulty);
+		memWriteS32(&writer,       saveFiles[i].highScore1);
+		memWriteS32(&writer,       saveFiles[i].highScore2);
+		memWriteU8(&writer,        strlen(saveFiles[i].highScoreName));
 		memWriteCharArray(&writer, saveFiles[i].highScoreName, 29);
-		memWriteU8(&writer, saveFiles[i].highScoreDiff);
+		memWriteU8(&writer,        saveFiles[i].highScoreDiff);
 	}
 
 	editorItemAvail[98] = editorLevel >> 8;
@@ -940,22 +923,20 @@ void saveSaves(void)
 
 	encryptSaveData(data);
 
-#ifndef TARGET_WIN32
-	mkdir(get_user_directory(), 0700);
-#else
-	mkdir(get_user_directory());
-#endif
-
-	FILE *f = dir_fopen_warn(get_user_directory(), "tyrian.sav", "wb");
-	if (f != NULL)
+	File file = userFileOpen(tyrianSaveFilename, "wb");
+	if (file.error)
 	{
-		if (fwrite(data, 1, sizeof(data), f) != sizeof(data))
-			logWarn("Failed to write to 'tyrian.sav': %s", strerror(errno));
+		logError("Failed to open '%s': %s", tyrianSaveFilename, fileGetError(&file));
+	}
+	else
+	{
+		fileWrite(&file, data, sizeof data);
+		fileFlush(&file);
 
-#if _POSIX_C_SOURCE >= 1 || _XOPEN_SOURCE || _POSIX_SOURCE
-		fsync(fileno(f));
-#endif
-		fclose(f);
+		if (file.error)
+			logError("Failed to write to '%s': %s", tyrianSaveFilename, fileGetError(&file));
+
+		fileClose(&file);
 	}
 }
 
@@ -975,7 +956,7 @@ void encryptSaveData(Uint8 *data)
 
 	y = 1;
 	for (size_t i = 0; i < SAVE_FILE_SIZE; ++i)
-		y = (y * data[i]) + 1;
+		y = y * data[i] + 1;
 	data[SAVE_FILE_SIZE + 2] = y;
 
 	y = 0;
@@ -1018,7 +999,7 @@ bool decryptSaveData(Uint8 *data)
 
 	y = 1;
 	for (size_t i = 0; i < SAVE_FILE_SIZE; ++i)
-		y = (y * data[i]) + 1;
+		y = y * data[i] + 1;
 	if (data[SAVE_FILE_SIZE + 2] != y)
 		return false;
 

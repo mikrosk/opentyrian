@@ -2333,6 +2333,17 @@ draw_player_shot_loop_end:
 	goto level_loop;
 }
 
+static void readEpisodeString(File *file, char *dst, size_t size)
+{
+	readEncryptedString(file, dst, size);
+
+	if (file->error)
+	{
+		logFatal("Failed to read from file '%s': %s", episodeFilename, fileGetError(file));
+		exit(EXIT_FAILURE);
+	}
+}
+
 /* --- Load Level/Map Data --- */
 void JE_loadMap(void)
 {
@@ -2372,20 +2383,25 @@ new_game:
 	{
 		do
 		{
-			FILE *ep_f = dir_fopen_die(data_dir(), episode_file, "rb");
+			File episodeFile = dataFileOpen(episodeFilename, "rb");
+			if (episodeFile.error)
+			{
+				logFatal("Failed to open file '%s': %s", episodeFilename, fileGetError(&episodeFile));
+				exit(EXIT_FAILURE);
+			}
 
 			jumpSection = false;
 			loadLevelOk = false;
 
 			/* Seek Section # Mainlevel */
-			int x = 0;
-			while (x < mainLevel)
+			for (uint i = 0; i < mainLevel; )
 			{
-				read_encrypted_pascal_string(s, sizeof(s), ep_f);
+				readEpisodeString(&episodeFile, s, sizeof s);
+
 				if (s[0] == '*')
 				{
-					x++;
 					s[0] = ' ';
+					i++;
 				}
 			}
 
@@ -2395,7 +2411,7 @@ new_game:
 			{
 				if (gameLoaded)
 				{
-					fclose(ep_f);
+					fileClose(&episodeFile);
 
 					if (mainLevel == 0)  // if quit itemscreen
 						return;          // back to title screen
@@ -2403,8 +2419,9 @@ new_game:
 						goto new_game;
 				}
 
-				strcpy(s, " ");
-				read_encrypted_pascal_string(s, sizeof(s), ep_f);
+				memset(s, 0, sizeof s);
+
+				readEpisodeString(&episodeFile, s, sizeof s);
 
 				if (s[0] == ']')
 				{
@@ -2547,7 +2564,7 @@ new_game:
 
 						for (int i = 0; i < 9; ++i)
 						{
-							read_encrypted_pascal_string(s, sizeof(s), ep_f);
+							readEpisodeString(&episodeFile, s, sizeof s);
 
 							char buf[256];
 							strncpy(buf, (strlen(s) > 8) ? s + 8 : "", sizeof(buf));
@@ -2598,21 +2615,35 @@ new_game:
 							levelWarningLines = 2;
 						}
 
-						for (x = 0; x < temp - 1; x++)
+						// Skip to hint.
+						for (int i = 0; i < temp - 1; ++i)
 						{
-							do
+							while (true)
 							{
-								read_encrypted_pascal_string(s, sizeof(s), ep_f);
-							} while (s[0] != '#');
+								readEpisodeString(&episodeFile, s, sizeof s);
+
+								if (s[0] == '#')
+									break;
+							}
 						}
 
-						do
+						// Read hint.
+						while (true)
 						{
-							read_encrypted_pascal_string(s, sizeof(s), ep_f);
-							strcpy(levelWarningText[levelWarningLines], s);
+							readEpisodeString(&episodeFile, s, sizeof s);
+
+							if (s[0] == '#')
+								break;
+
+							if (levelWarningLines >= COUNTOF(levelWarningText))
+							{
+								logWarn("Hint has too many lines.");
+								continue;
+							}
+
+							SDL_strlcpy(levelWarningText[levelWarningLines], s, sizeof *levelWarningText);
 							levelWarningLines++;
-						} while (s[0] != '#');
-						levelWarningLines--;
+						}
 
 						frameCountMax = 4;
 						if (!constantPlay)
@@ -2878,16 +2909,23 @@ new_game:
 								warningRed = frameCountMax / 10;
 								frameCountMax = frameCountMax % 10;
 
-								do
+								// Read text.
+								while (true)
 								{
-									read_encrypted_pascal_string(s, sizeof(s), ep_f);
+									readEpisodeString(&episodeFile, s, sizeof s);
 
-									if (s[0] != '#')
+									if (s[0] == '#')
+										break;
+
+									if (levelWarningLines >= COUNTOF(levelWarningText))
 									{
-										strcpy(levelWarningText[levelWarningLines], s);
-										levelWarningLines++;
+										logWarn("Text has too many lines.");
+										continue;
 									}
-								} while (!(s[0] == '#'));
+
+									SDL_strlcpy(levelWarningText[levelWarningLines], s, sizeof *levelWarningText);
+									levelWarningLines++;
+								}
 
 								JE_displayText();
 							}
@@ -2905,7 +2943,7 @@ new_game:
 					case 'h':  // Skip next line of script if difficulty is hard or higher.
 						if (initialDifficulty > DIFFICULTY_NORMAL)
 						{
-							read_encrypted_pascal_string(s, sizeof(s), ep_f);
+							readEpisodeString(&episodeFile, s, sizeof s);
 						}
 						break;
 
@@ -2929,7 +2967,7 @@ new_game:
 
 			} while (!(loadLevelOk || jumpSection));
 
-			fclose(ep_f);
+			fileClose(&episodeFile);
 
 		} while (!loadLevelOk);
 	}
@@ -2946,31 +2984,43 @@ new_game:
 			beginRecordDemo();
 	}
 
-	FILE *level_f = dir_fopen_die(data_dir(), levelFile, "rb");
-	fseek(level_f, lvlPos[(lvlFileNum-1) * 2], SEEK_SET);
+	File levelFile = dataFileOpen(levelFilename, "rb");
+	if (levelFile.error)
+	{
+		logFatal("Failed to open file '%s': %s", levelFilename, fileGetError(&levelFile));
+		exit(EXIT_FAILURE);
+	}
+
+	fileSetPosition(&levelFile, lvlPos[(lvlFileNum-1) * 2]);
 
 	JE_char char_mapFile;
 	JE_char char_shapeFile;
-	fread_die(&char_mapFile,   1, 1, level_f);
-	fread_die(&char_shapeFile, 1, 1, level_f);
-	fread_u16_die(&mapX,  1, level_f);
-	fread_u16_die(&mapX2, 1, level_f);
-	fread_u16_die(&mapX3, 1, level_f);
+	char_mapFile   = fileReadChar(&levelFile);
+	char_shapeFile = fileReadChar(&levelFile);
+	mapX           = fileReadU16(&levelFile);
+	mapX2          = fileReadU16(&levelFile);
+	mapX3          = fileReadU16(&levelFile);
+	(void)char_mapFile;
 
-	fread_u16_die(&levelEnemyMax, 1, level_f);
-	fread_u16_die(levelEnemy, levelEnemyMax, level_f);
+	levelEnemyMax = fileReadU16(&levelFile);
+	fileReadU16Array(&levelFile, levelEnemy, levelEnemyMax);
 
-	fread_u16_die(&maxEvent, 1, level_f);
+	maxEvent = fileReadU16(&levelFile);
+	if (maxEvent >= COUNTOF(eventRec))
+	{
+		logFatal("Level has too many events.");
+		exit(EXIT_FAILURE);
+	}
 	for (x = 0; x < maxEvent; x++)
 	{
-		fread_u16_die(&eventRec[x].eventtime, 1, level_f);
-		fread_u8_die( &eventRec[x].eventtype, 1, level_f);
-		fread_s16_die(&eventRec[x].eventdat,  1, level_f);
-		fread_s16_die(&eventRec[x].eventdat2, 1, level_f);
-		fread_s8_die( &eventRec[x].eventdat3, 1, level_f);
-		fread_s8_die( &eventRec[x].eventdat5, 1, level_f);
-		fread_s8_die( &eventRec[x].eventdat6, 1, level_f);
-		fread_u8_die( &eventRec[x].eventdat4, 1, level_f);
+		eventRec[x].eventtime = fileReadU16(&levelFile);
+		eventRec[x].eventtype = fileReadU8(&levelFile);
+		eventRec[x].eventdat  = fileReadS16(&levelFile);
+		eventRec[x].eventdat2 = fileReadS16(&levelFile);
+		eventRec[x].eventdat3 = fileReadS8(&levelFile);
+		eventRec[x].eventdat5 = fileReadS8(&levelFile);
+		eventRec[x].eventdat6 = fileReadS8(&levelFile);
+		eventRec[x].eventdat4 = fileReadU8(&levelFile);
 	}
 	eventRec[x].eventtime = 65500;  /*Not needed but just in case*/
 
@@ -2979,28 +3029,27 @@ new_game:
 	/*debuginfo('Loading Map');*/
 
 	/* MAP SHAPE LOOKUP TABLE - Each map is directly after level */
-	for (temp = 0; temp < 3; temp++)
-	{
-		fread_u16_die(mapSh[temp], sizeof(*mapSh) / sizeof(JE_word), level_f);
-		for (temp2 = 0; temp2 < 128; temp2++)
-		{
-			mapSh[temp][temp2] = SDL_Swap16(mapSh[temp][temp2]);
-		}
-	}
+	for (size_t i = 0; i < COUNTOF(mapSh); ++i)
+		fileReadU16BEArray(&levelFile, mapSh[i], COUNTOF(mapSh[i]));
 
 	/* Read Shapes.DAT */
-	sprintf(tempStr, "shapes%c.dat", tolower((unsigned char)char_shapeFile));
-	FILE *shpFile = dir_fopen_die(data_dir(), tempStr, "rb");
+	char shapesFilename[13];
+	snprintf(shapesFilename, sizeof shapesFilename, "shapes%c.dat", tolower(char_shapeFile));
+
+	File shapesFile = dataFileOpen(shapesFilename, "rb");
+	if (shapesFile.error)
+	{
+		logFatal("Failed to open file '%s': %s", shapesFilename, fileGetError(&shapesFile));
+		exit(EXIT_FAILURE);
+	}
 
 	for (int z = 0; z < 600; z++)
 	{
-		JE_boolean shapeBlank;
-		fread_bool_die(&shapeBlank, shpFile);
-
+		bool shapeBlank = fileReadBool(&shapesFile);
 		if (shapeBlank)
-			memset(shape, 0, sizeof(shape));
+			memset(shape, 0, sizeof shape);
 		else
-			fread_u8_die(shape, sizeof(shape), shpFile);
+			fileReadExactly(&shapesFile, shape, sizeof shape);
 
 		/* Match 1 */
 		for (int x = 0; x <= 71; ++x)
@@ -3062,9 +3111,15 @@ new_game:
 		}
 	}
 
-	fclose(shpFile);
+	if (shapesFile.error)
+	{
+		logFatal("Failed to read from file '%s': %s", shapesFilename, fileGetError(&shapesFile));
+		exit(EXIT_FAILURE);
+	}
 
-	fread_u8_die(mapBuf, 14 * 300, level_f);
+	fileClose(&shapesFile);
+
+	fileReadU8Array(&levelFile, mapBuf, 14 * 300);
 	bufLoc = 0;              /* MAP NUMBER 1 */
 	for (y = 0; y < 300; y++)
 	{
@@ -3075,7 +3130,7 @@ new_game:
 		}
 	}
 
-	fread_u8_die(mapBuf, 14 * 600, level_f);
+	fileReadU8Array(&levelFile, mapBuf, 14 * 600);
 	bufLoc = 0;              /* MAP NUMBER 2 */
 	for (y = 0; y < 600; y++)
 	{
@@ -3086,7 +3141,7 @@ new_game:
 		}
 	}
 
-	fread_u8_die(mapBuf, 15 * 600, level_f);
+	fileReadU8Array(&levelFile, mapBuf, 15 * 600);
 	bufLoc = 0;              /* MAP NUMBER 3 */
 	for (y = 0; y < 600; y++)
 	{
@@ -3097,7 +3152,13 @@ new_game:
 		}
 	}
 
-	fclose(level_f);
+	if (levelFile.error)
+	{
+		logFatal("Failed to read from file '%s': %s", levelFilename, fileGetError(&levelFile));
+		exit(EXIT_FAILURE);
+	}
+
+	fileClose(&levelFile);
 
 	/* Note: The map data is automatically calculated with the correct mapsh
 	value and then the pointer is calculated using the formula (MAPSH-1)*168.

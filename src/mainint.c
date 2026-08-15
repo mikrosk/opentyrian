@@ -30,6 +30,7 @@
 #include "joystick.h"
 #include "keyboard.h"
 #include "lds_play.h"
+#include "logging.h"
 #include "loudness.h"
 #include "menus.h"
 #include "mouse.h"
@@ -2344,13 +2345,8 @@ void JE_sort(void)
 
 void JE_playCredits(void)
 {
-	enum { lines_max = 131 };
-	enum { line_max_length = 65 };
-	
-	char credstr[lines_max][line_max_length + 1];
-	
-	int lines = 0;
-	
+	char credstr[131][65 + 1];
+
 	JE_byte currentpic = 0, fade = 0;
 	JE_shortint fadechg = 1;
 	JE_byte currentship = 0;
@@ -2362,24 +2358,37 @@ void JE_playCredits(void)
 	setFrameCount2(1000);
 
 	play_song(8);
-	
-	// load credits text
-	FILE *f = dir_fopen_die(data_dir(), "tyrian.cdt", "rb");
-	for (lines = 0; lines < lines_max; ++lines)
+
+	const char *filename = "tyrian.cdt";
+
+	File file = dataFileOpen(filename, "rb");
+	if (file.error)
 	{
-		read_encrypted_pascal_string(credstr[lines], sizeof(credstr[lines]), f);
+		logFatal("Failed to open file '%s': %s", filename, fileGetError(&file));
+		exit(EXIT_FAILURE);
 	}
-	fclose(f);
-	
+
+	// load credits text
+	for (size_t i = 0; i < COUNTOF(credstr); ++i)
+		readEncryptedString(&file, credstr[i], sizeof credstr[i]);
+
+	if (file.error)
+	{
+		logFatal("Failed to read from file '%s': %s", filename, fileGetError(&file));
+		exit(EXIT_FAILURE);
+	}
+
+	fileClose(&file);
+
 	memcpy(colors, palettes[6-1], sizeof(colors));
 	JE_clr256(VGAScreen);
 	JE_showVGA();
 	fade_palette(colors, 2, 0, 255);
 	
 	//tempScreenSeg = VGAScreenSeg;
-	
-	const int ticks_max = lines * 20 * 3;
-	for (int ticks = 0; ticks < ticks_max; ++ticks)
+
+	const uint ticks_max = COUNTOF(credstr) * 20 * 3;
+	for (uint ticks = 0; ticks < ticks_max; ++ticks)
 	{
 		setFrameCount(1);
 
@@ -2465,9 +2474,9 @@ void JE_playCredits(void)
 		
 		for (int line = bottom_line - 10; line < bottom_line; ++line)
 		{
-			if (line >= 0 && line < lines_max)
+			if (line >= 0 && (uint)line < COUNTOF(credstr))
 			{
-				if (strcmp(&credstr[line][0], ".") != 0 && strlen(credstr[line]))
+				if (credstr[line][0] != '.' && credstr[line][0] != '\0')
 				{
 					const Uint8 color = credstr[line][0] - 65;
 					const char *text = &credstr[line][1];
@@ -2487,8 +2496,8 @@ void JE_playCredits(void)
 		
 		if (currentpic == sprite_table[EXTRA_SHAPES].count - 1)
 			JE_outTextAdjust(VGAScreen, 5, 180, miscText[54], 2, -2, SMALL_FONT_SHAPES, false);  // levels-in-episode
-		
-		if (bottom_line == lines_max - 8)
+
+		if (bottom_line == COUNTOF(credstr) - 8)
 			fade_song();
 		
 		if (ticks == ticks_max - 1)

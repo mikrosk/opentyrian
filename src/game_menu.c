@@ -25,6 +25,7 @@
 #include "fonthand.h"
 #include "joystick.h"
 #include "keyboard.h"
+#include "logging.h"
 #include "loudness.h"
 #include "mainint.h"
 #include "mouse.h"
@@ -1736,23 +1737,31 @@ void load_cubes(void)
 
 bool load_cube(int cube_slot, int cube_index)
 {
-	FILE *f = dir_fopen_die(data_dir(), cube_file, "rb");
+	const char *filename = cubeFilename;
 
-	char buf[256];
+	File file = dataFileOpen(filename, "rb");
+	if (file.error)
+	{
+		logFatal("Failed to open file '%s': %s", filename, fileGetError(&file));
+		exit(EXIT_FAILURE);
+	}
+
+	char buf[256] = { 0 };
 
 	// seek to the cube
 	while (cube_index > 0)
 	{
-		read_encrypted_pascal_string(buf, sizeof(buf), f);
-		if (buf[0] == '*')
+		readEncryptedString(&file, buf, sizeof(buf));
+
+		if (buf[0] == '*' || file.error)
 			--cube_index;
 	}
 
 	str_pop_int(&buf[4], &cube[cube_slot].face_sprite);
 	--cube[cube_slot].face_sprite;
 
-	read_encrypted_pascal_string(cube[cube_slot].title, sizeof(cube[cube_slot].title), f);
-	read_encrypted_pascal_string(cube[cube_slot].header, sizeof(cube[cube_slot].header), f);
+	readEncryptedString(&file, cube[cube_slot].title, sizeof(cube[cube_slot].title));
+	readEncryptedString(&file, cube[cube_slot].header, sizeof(cube[cube_slot].header));
 
 	uint line = 0, line_chars = 0, line_width = 0;
 
@@ -1760,10 +1769,10 @@ bool load_cube(int cube_slot, int cube_index)
 	// and add them individually to the lines of wrapped text
 	for (; ; )
 	{
-		read_encrypted_pascal_string(buf, sizeof(buf), f);
+		readEncryptedString(&file, buf, sizeof(buf));
 
 		// end of data
-		if (buf[0] == '*')
+		if (buf[0] == '*' || file.error)
 			break;
 
 		// new paragraph
@@ -1831,7 +1840,13 @@ bool load_cube(int cube_slot, int cube_index)
 		}
 	}
 
-	fclose(f);
+	if (file.error)
+	{
+		logFatal("Failed to read from file '%s': %s", filename, fileGetError(&file));
+		exit(EXIT_FAILURE);
+	}
+
+	fileClose(&file);
 
 	return true;
 }

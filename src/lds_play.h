@@ -27,7 +27,7 @@
 extern bool playing, songlooped;
 
 int lds_update(void);
-bool lds_load(FILE *f, unsigned int music_offset, unsigned int music_size);
+bool lds_load(const void *data, size_t size);
 void lds_free(void);
 void lds_rewind(void);
 void lds_fade(Uint8 speed);

@@ -64,7 +64,7 @@ void JE_paramCheck(int argc, char *argv[])
 		{ 'r', 'r', "record",            false },
 		{ 'l', 'l', "loot",              false },
 		
-		{ 0, 0, NULL, false}
+		{ 0, 0, NULL, false }
 	};
 	
 	Option option;
@@ -119,7 +119,7 @@ void JE_paramCheck(int argc, char *argv[])
 			
 		// set custom Tyrian data directory
 		case 't':
-			custom_data_dir = option.arg;
+			customDataDirPath = option.arg;
 			break;
 			
 		case 'n':
@@ -224,7 +224,7 @@ void JE_paramCheck(int argc, char *argv[])
 	for (int i = option.argn; i < argc; ++i)
 	{
 		for (uint j = 0; j < strlen(argv[i]); ++j)
-			argv[i][j] = toupper((unsigned char)argv[i][j]);
+			argv[i][j] = toupper(argv[i][j]);
 		
 		for (uint j = 0; j < COUNTOF(pars); ++j)
 		{
