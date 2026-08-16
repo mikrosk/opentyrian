@@ -36,10 +36,10 @@ void memReaderSkip(MemReader *reader, size_t size);
 
 uint8_t memReadU8(MemReader *reader);
 void memReadU8Array(MemReader *reader, uint8_t *values, size_t count);
-uint16_t memReadU16LE(MemReader *reader);
-void memReadU16LEArray(MemReader *reader, uint16_t *values, size_t count);
-uint32_t memReadU32LE(MemReader *reader);
-void memReadU32LEArray(MemReader *reader, uint32_t *values, size_t count);
+uint16_t memReadU16(MemReader *reader);
+void memReadU16Array(MemReader *reader, uint16_t *values, size_t count);
+uint32_t memReadU32(MemReader *reader);
+void memReadU32Array(MemReader *reader, uint32_t *values, size_t count);
 
 static inline bool memReadBool(MemReader *reader)
 {
@@ -66,24 +66,24 @@ static inline void memReadS8Array(MemReader *reader, int8_t *values, size_t coun
 	memReadU8Array(reader, (uint8_t *)values, count);
 }
 
-static inline int8_t memReadS16LE(MemReader *reader)
+static inline int8_t memReadS16(MemReader *reader)
 {
-	return memReadU16LE(reader);
+	return memReadU16(reader);
 }
 
-static inline void memReadS16LEArray(MemReader *reader, int16_t *values, size_t count)
+static inline void memReadS16Array(MemReader *reader, int16_t *values, size_t count)
 {
-	memReadU16LEArray(reader, (uint16_t *)values, count);
+	memReadU16Array(reader, (uint16_t *)values, count);
 }
 
-static inline int32_t memReadS32LE(MemReader *reader)
+static inline int32_t memReadS32(MemReader *reader)
 {
-	return memReadU32LE(reader);
+	return memReadU32(reader);
 }
 
-static inline void memReadS32LEArray(MemReader *reader, int32_t *values, size_t count)
+static inline void memReadS32Array(MemReader *reader, int32_t *values, size_t count)
 {
-	memReadU32LEArray(reader, (uint32_t *)values, count);
+	memReadU32Array(reader, (uint32_t *)values, count);
 }
 
 #endif /* MEMREADER_H */

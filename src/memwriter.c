@@ -103,26 +103,26 @@ void memWriteU8Array(MemWriter *writer, const uint8_t *values, size_t count)
 	}
 }
 
-static inline void storeU16LE(uint8_t *data, uint16_t value)
+static inline void storeU16(uint8_t *data, uint16_t value)
 {
 	// One byte at a time because some platforms do not allow unaligned stores.
 	data[0] = value;
 	data[1] = value >> 8;
 }
 
-void memWriteU16LE(MemWriter *writer, uint16_t value)
+void memWriteU16(MemWriter *writer, uint16_t value)
 {
 	writer->error |= writer->size < 2;
 
 	if (writer->error)
 		return;
 
-	storeU16LE(writer->data, value);
+	storeU16(writer->data, value);
 	writer->data += 2;
 	writer->size -= 2;
 }
 
-void memWriteU16LEArray(MemWriter *writer, const uint16_t *values, size_t count)
+void memWriteU16Array(MemWriter *writer, const uint16_t *values, size_t count)
 {
 	writer->error |= writer->size / 2 < count;
 
@@ -131,14 +131,14 @@ void memWriteU16LEArray(MemWriter *writer, const uint16_t *values, size_t count)
 
 	for (; count > 0; --count)
 	{
-		storeU16LE(writer->data, *values);
+		storeU16(writer->data, *values);
 		values += 1;
 		writer->data += 2;
 		writer->size -= 2;
 	}
 }
 
-static inline void storeU32LE(uint8_t *data, uint32_t value)
+static inline void storeU32(uint8_t *data, uint32_t value)
 {
 	// One byte at a time because some platforms do not allow unaligned stores.
 	data[0] = value;
@@ -147,19 +147,19 @@ static inline void storeU32LE(uint8_t *data, uint32_t value)
 	data[3] = value >> 24;
 }
 
-void memWriteU32LE(MemWriter *writer, uint32_t value)
+void memWriteU32(MemWriter *writer, uint32_t value)
 {
 	writer->error |= writer->size < 4;
 
 	if (writer->error)
 		return;
 
-	storeU32LE(writer->data, value);
+	storeU32(writer->data, value);
 	writer->data += 4;
 	writer->size -= 4;
 }
 
-void memWriteU32LEArray(MemWriter *writer, const uint32_t *values, size_t count)
+void memWriteU32Array(MemWriter *writer, const uint32_t *values, size_t count)
 {
 	writer->error |= writer->size / 4 < count;
 
@@ -168,7 +168,7 @@ void memWriteU32LEArray(MemWriter *writer, const uint32_t *values, size_t count)
 
 	for (; count > 0; --count)
 	{
-		storeU32LE(writer->data, *values);
+		storeU32(writer->data, *values);
 		values += 1;
 		writer->data += 4;
 		writer->size -= 4;

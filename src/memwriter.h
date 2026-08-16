@@ -42,10 +42,10 @@ void memWriteRead(MemWriter *writer, MemReader *reader, size_t size);
 
 void memWriteU8(MemWriter *writer, uint8_t value);
 void memWriteU8Array(MemWriter *writer, const uint8_t *values, size_t count);
-void memWriteU16LE(MemWriter *writer, uint16_t value);
-void memWriteU16LEArray(MemWriter *writer, const uint16_t *values, size_t count);
-void memWriteU32LE(MemWriter *writer, uint32_t value);
-void memWriteU32LEArray(MemWriter *writer, const uint32_t *values, size_t count);
+void memWriteU16(MemWriter *writer, uint16_t value);
+void memWriteU16Array(MemWriter *writer, const uint16_t *values, size_t count);
+void memWriteU32(MemWriter *writer, uint32_t value);
+void memWriteU32Array(MemWriter *writer, const uint32_t *values, size_t count);
 
 static inline void memWriteBool(MemWriter *writer, bool value)
 {
@@ -72,24 +72,24 @@ static inline void memWriteS8Array(MemWriter *writer, const int8_t *values, size
 	memWriteU8Array(writer, (const uint8_t *)values, count);
 }
 
-static inline void memWriteS16LE(MemWriter *writer, int8_t value)
+static inline void memWriteS16(MemWriter *writer, int8_t value)
 {
-	memWriteU16LE(writer, value);
+	memWriteU16(writer, value);
 }
 
-static inline void memWriteS16LEArray(MemWriter *writer, const int16_t *values, size_t count)
+static inline void memWriteS16Array(MemWriter *writer, const int16_t *values, size_t count)
 {
-	memWriteU16LEArray(writer, (const uint16_t *)values, count);
+	memWriteU16Array(writer, (const uint16_t *)values, count);
 }
 
-static inline void memWriteS32LE(MemWriter *writer, int32_t value)
+static inline void memWriteS32(MemWriter *writer, int32_t value)
 {
-	memWriteU32LE(writer, value);
+	memWriteU32(writer, value);
 }
 
-static inline void memWriteS32LEArray(MemWriter *writer, int32_t *values, size_t count)
+static inline void memWriteS32Array(MemWriter *writer, int32_t *values, size_t count)
 {
-	memWriteU32LEArray(writer, (const uint32_t *)values, count);
+	memWriteU32Array(writer, (const uint32_t *)values, count);
 }
 
 #endif /* MEMWRITER_H */

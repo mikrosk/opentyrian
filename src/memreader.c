@@ -80,27 +80,27 @@ void memReadU8Array(MemReader *reader, uint8_t *values, size_t count)
 	}
 }
 
-static inline uint16_t loadU16LE(const uint8_t *data)
+static inline uint16_t loadU16(const uint8_t *data)
 {
 	// One byte at a time because some platforms do not allow unaligned loads.
 	return ((uint16_t)data[0]) |
 	       ((uint16_t)data[1] << 8);
 }
 
-uint16_t memReadU16LE(MemReader *reader)
+uint16_t memReadU16(MemReader *reader)
 {
 	reader->error |= reader->size < 2;
 
 	if (reader->error)
 		return 0;
 
-	uint16_t value = loadU16LE(reader->data);
+	uint16_t value = loadU16(reader->data);
 	reader->data += 2;
 	reader->size -= 2;
 	return value;
 }
 
-void memReadU16LEArray(MemReader *reader, uint16_t *values, size_t count)
+void memReadU16Array(MemReader *reader, uint16_t *values, size_t count)
 {
 	reader->error |= reader->size / 2 < count;
 
@@ -116,14 +116,14 @@ void memReadU16LEArray(MemReader *reader, uint16_t *values, size_t count)
 
 	for (; count > 0; --count)
 	{
-		*values = loadU16LE(reader->data);
+		*values = loadU16(reader->data);
 		values += 1;
 		reader->data += 2;
 		reader->size -= 2;
 	}
 }
 
-static inline uint32_t loadU32LE(const uint8_t *data)
+static inline uint32_t loadU32(const uint8_t *data)
 {
 	// One byte at a time because some platforms do not allow unaligned loads.
 	return ((uint32_t)data[0]) |
@@ -132,20 +132,20 @@ static inline uint32_t loadU32LE(const uint8_t *data)
 	       ((uint32_t)data[3] << 24);
 }
 
-uint32_t memReadU32LE(MemReader *reader)
+uint32_t memReadU32(MemReader *reader)
 {
 	reader->error |= reader->size < 4;
 
 	if (reader->error)
 		return 0;
 
-	uint32_t value = loadU32LE(reader->data);
+	uint32_t value = loadU32(reader->data);
 	reader->data += 4;
 	reader->size -= 4;
 	return value;
 }
 
-void memReadU32LEArray(MemReader *reader, uint32_t *values, size_t count)
+void memReadU32Array(MemReader *reader, uint32_t *values, size_t count)
 {
 	reader->error |= reader->size / 4 < count;
 
@@ -161,7 +161,7 @@ void memReadU32LEArray(MemReader *reader, uint32_t *values, size_t count)
 
 	for (; count > 0; --count)
 	{
-		*values = loadU32LE(reader->data);
+		*values = loadU32(reader->data);
 		values += 1;
 		reader->data += 4;
 		reader->size -= 4;

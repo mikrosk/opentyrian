@@ -706,8 +706,8 @@ void loadConfiguration(void)
 		gammaCorrection = memReadU8(&reader);
 		difficultyLevel = memReadS8(&reader);
 		memReadU8Array(&reader, joyButtonAssign, COUNTOF(joyButtonAssign));
-		tyrMusicVolume = memReadU16LE(&reader);
-		fxVolume = memReadU16LE(&reader);
+		tyrMusicVolume = memReadU16(&reader);
+		fxVolume = memReadU16(&reader);
 		inputDevice1 = memReadU8(&reader);
 		inputDevice2 = memReadU8(&reader);
 		memReadU8Array(&reader, dosKeySettings, COUNTOF(dosKeySettings));
@@ -773,8 +773,8 @@ void saveConfiguration(void)
 	memWriteU8(&writer, gammaCorrection);
 	memWriteS8(&writer, difficultyLevel);
 	memWriteU8Array(&writer, joyButtonAssign, COUNTOF(joyButtonAssign));
-	memWriteU16LE(&writer, tyrMusicVolume);
-	memWriteU16LE(&writer, fxVolume);
+	memWriteU16(&writer, tyrMusicVolume);
+	memWriteU16(&writer, fxVolume);
 	memWriteU8(&writer, inputDevice1);
 	memWriteU8(&writer, inputDevice2);
 	memWriteU8Array(&writer, dosKeySettings, COUNTOF(dosKeySettings));
@@ -826,11 +826,11 @@ void loadSaves(void)
 
 		for (size_t i = 0; i < COUNTOF(saveFiles); ++i)
 		{
-			saveFiles[i].encode = memReadU16LE(&reader);
-			saveFiles[i].level = memReadU16LE(&reader);
+			saveFiles[i].encode = memReadU16(&reader);
+			saveFiles[i].level = memReadU16(&reader);
 			memReadU8Array(&reader, saveFiles[i].items, COUNTOF(saveFiles[i].items));
-			saveFiles[i].score = memReadU32LE(&reader);
-			saveFiles[i].score2 = memReadU32LE(&reader);
+			saveFiles[i].score = memReadU32(&reader);
+			saveFiles[i].score2 = memReadU32(&reader);
 			Uint8 levelNameLen = memReadU8(&reader);
 			memReadCharArray(&reader, saveFiles[i].levelName, 9);
 			saveFiles[i].levelName[MIN(levelNameLen, 9)] = '\0';
@@ -846,8 +846,8 @@ void loadSaves(void)
 			saveFiles[i].input2 = memReadU8(&reader);
 			saveFiles[i].gameHasRepeated = memReadBool(&reader);
 			saveFiles[i].initialDifficulty = memReadU8(&reader);
-			saveFiles[i].highScore1 = memReadS32LE(&reader);
-			saveFiles[i].highScore2 = memReadS32LE(&reader);
+			saveFiles[i].highScore1 = memReadS32(&reader);
+			saveFiles[i].highScore2 = memReadS32(&reader);
 			Uint8 highScoreNameLen = memReadU8(&reader);
 			memReadCharArray(&reader, saveFiles[i].highScoreName, 29);
 			saveFiles[i].highScoreName[MIN(highScoreNameLen, 29)] = '\0';
@@ -906,11 +906,11 @@ void saveSaves(void)
 
 	for (size_t i = 0; i < COUNTOF(saveFiles); ++i)
 	{
-		memWriteU16LE(&writer, saveFiles[i].encode);
-		memWriteU16LE(&writer, saveFiles[i].level);
+		memWriteU16(&writer, saveFiles[i].encode);
+		memWriteU16(&writer, saveFiles[i].level);
 		memWriteU8Array(&writer, saveFiles[i].items, COUNTOF(saveFiles[i].items));
-		memWriteU32LE(&writer, saveFiles[i].score);
-		memWriteU32LE(&writer, saveFiles[i].score2);
+		memWriteU32(&writer, saveFiles[i].score);
+		memWriteU32(&writer, saveFiles[i].score2);
 		memWriteU8(&writer, strlen(saveFiles[i].levelName));
 		memWriteCharArray(&writer, saveFiles[i].levelName, 9);
 		memWriteCharArray(&writer, saveFiles[i].name, 14);
@@ -924,8 +924,8 @@ void saveSaves(void)
 		memWriteU8(&writer, saveFiles[i].input2);
 		memWriteBool(&writer, saveFiles[i].gameHasRepeated);
 		memWriteU8(&writer, saveFiles[i].initialDifficulty);
-		memWriteS32LE(&writer, saveFiles[i].highScore1);
-		memWriteS32LE(&writer, saveFiles[i].highScore2);
+		memWriteS32(&writer, saveFiles[i].highScore1);
+		memWriteS32(&writer, saveFiles[i].highScore2);
 		memWriteU8(&writer, strlen(saveFiles[i].highScoreName));
 		memWriteCharArray(&writer, saveFiles[i].highScoreName, 29);
 		memWriteU8(&writer, saveFiles[i].highScoreDiff);

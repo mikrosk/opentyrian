@@ -49,8 +49,8 @@ static bool readFileHeader(FileHeader *fileHeader, FILE *f)
 	MemReader reader = { data, size, false };
 
 	memReaderSkip(&reader, 6);
-	fileHeader->pageCount = memReadU16LE(&reader);
-	fileHeader->recordCount = memReadU32LE(&reader);
+	fileHeader->pageCount = memReadU16(&reader);
+	fileHeader->recordCount = memReadU32(&reader);
 	memReaderSkip(&reader, 244);
 
 	assert(reader.size == 0 || reader.error);
@@ -85,9 +85,9 @@ static bool readPageDescriptors(PageDescriptor *pageDescriptors, FILE *f)
 
 	for (size_t i = 0; i < 256; ++i)
 	{
-		pageDescriptors[i].firstRecord = memReadU16LE(&reader);
-		pageDescriptors[i].recordCount = memReadU16LE(&reader);
-		pageDescriptors[i].recordsSize = memReadU16LE(&reader);
+		pageDescriptors[i].firstRecord = memReadU16(&reader);
+		pageDescriptors[i].recordCount = memReadU16(&reader);
+		pageDescriptors[i].recordsSize = memReadU16(&reader);
 	}
 
 	assert(reader.size == 0 || reader.error);
@@ -118,7 +118,7 @@ static void decodeRunSkipDump(MemWriter *writer, MemReader *reader)
 		}
 		else  // 80: Long op
 		{
-			Uint16 opCode = memReadU16LE(reader);
+			Uint16 opCode = memReadU16(reader);
 
 			if (opCode == 0)  // 0000: Stop
 			{
@@ -231,7 +231,7 @@ void playAnim(const char *filename, Uint8 startingFrame, Uint8 speed)
 			firstRecord += 1;
 			recordCount -= 1;
 
-			Uint16 recordSize = memReadU16LE(&recordSizesReader);
+			Uint16 recordSize = memReadU16(&recordSizesReader);
 
 			if (recordSizesReader.error)
 				continue;
@@ -243,9 +243,9 @@ void playAnim(const char *filename, Uint8 startingFrame, Uint8 speed)
 				continue;
 
 			// Read record header.
-			(void)memReadU8(&recordReader);     // Bitmap ID (assumed 'B')
-			(void)memReadU8(&recordReader);     // Flags (assumed 0)
-			(void)memReadU16LE(&recordReader);  // Body Type (assumed 1)
+			(void)memReadU8(&recordReader);   // Bitmap ID (assumed 'B')
+			(void)memReadU8(&recordReader);   // Flags (assumed 0)
+			(void)memReadU16(&recordReader);  // Body Type (assumed 1)
 
 			// Decode record body to image.
 			MemWriter imageWriter = { image, imageSize, false };
