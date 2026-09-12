@@ -34,3 +34,6 @@ tyrian.sav
 
 # Doxygen output
 /doc/doxygen/
+
+# Release build scripts output (make_macos.sh, make_linux.sh)
+/build/

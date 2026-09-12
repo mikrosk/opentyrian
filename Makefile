@@ -8,7 +8,8 @@ else
     TYRIAN_DIR = $(gamesdir)/tyrian
 endif
 
-WITH_NETWORK := true
+# true, false, or auto (true if pkg-config can find SDL_net)
+WITH_NETWORK := auto
 
 ################################################################################
 
@@ -19,6 +20,7 @@ SHELL = /bin/sh
 CC ?= gcc
 INSTALL ?= install
 PKG_CONFIG ?= pkg-config
+WINDRES ?= windres
 
 VCS_IDREV ?= (git describe --tags || git rev-parse --short HEAD)
 
@@ -45,12 +47,27 @@ gamesdir ?= $(datadir)/games
 ###
 
 TARGET := opentyrian
+RES :=
+ifeq ($(PLATFORM), WIN32)
+    TARGET := opentyrian.exe
+    # The icon, from the same resource script the Visual Studio build uses.
+    RES := obj/resources.o
+endif
 
 SRCS := $(wildcard src/*.c)
 OBJS := $(SRCS:src/%.c=obj/%.o)
 DEPS := $(SRCS:src/%.c=obj/%.d)
 
 ###
+
+ifeq ($(WITH_NETWORK), auto)
+    ifeq ($(shell $(PKG_CONFIG) --exists SDL_net 2>/dev/null && echo true), true)
+        WITH_NETWORK := true
+    else
+        WITH_NETWORK := false
+        $(info SDL_net not found; building without network support)
+    endif
+endif
 
 ifeq ($(WITH_NETWORK), true)
     EXTRA_CPPFLAGS += -DWITH_NETWORK
@@ -62,12 +79,17 @@ ifneq ($(OPENTYRIAN_VERSION), )
     EXTRA_CPPFLAGS += -DOPENTYRIAN_VERSION='"$(OPENTYRIAN_VERSION)"'
 endif
 
+# -Wno-format-truncation only exists in GCC; Clang rejects it under -Werror
+ifeq ($(findstring clang, $(shell $(CC) --version 2>/dev/null)), )
+    WNO_FORMAT_TRUNCATION := -Wno-format-truncation
+endif
+
 CPPFLAGS ?= -MMD
 CPPFLAGS += -DNDEBUG
 CFLAGS ?= -pedantic \
           -Wall \
           -Wextra \
-          -Wno-format-truncation \
+          $(WNO_FORMAT_TRUNCATION) \
           -Wno-missing-field-initializers \
           -O2
 LDFLAGS ?=
@@ -148,9 +170,10 @@ uninstall :
 clean :
 	rm -f $(OBJS)
 	rm -f $(DEPS)
+	rm -f $(RES)
 	rm -f $(TARGET)
 
-$(TARGET) : $(OBJS)
+$(TARGET) : $(OBJS) $(RES)
 	$(CC) $(ALL_CFLAGS) $(ALL_LDFLAGS) -o $@ $^ $(ALL_LDLIBS)
 
 -include $(DEPS)
@@ -158,3 +181,7 @@ $(TARGET) : $(OBJS)
 obj/%.o : src/%.c
 	@mkdir -p "$(dir $@)"
 	$(CC) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c -o $@ $<
+
+obj/resources.o : visualc/resources.rc visualc/tyrian.ico
+	@mkdir -p "$(dir $@)"
+	$(WINDRES) --include-dir visualc -i $< -o $@
