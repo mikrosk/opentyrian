@@ -36,6 +36,9 @@ Configuration and saved game files are kept in one of the following locations:
 | Windows | `%APPDATA%\OpenTyrian` |
 | macOS / Linux | `$XDG_CONFIG_HOME/opentyrian` or `~/.config/opentyrian` |
 
+On Windows and Linux, if `opentyrian.cfg` exists in the same directory as the
+executable, the configuration and saved game files will be stored there instead.
+
 ## Game Data
 
 If you download a release build of OpenTyrian, the freeware Tyrian 2.1 data
