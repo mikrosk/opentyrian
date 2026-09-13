@@ -45,6 +45,13 @@ jobs:
         run: make -j"$(nproc)" debug
       - name: Smoke test
         run: ./opentyrian --help
+      - name: Test install/uninstall
+        run: |
+          DESTDIR=$(mktemp -d)
+          make install DESTDIR="$DESTDIR"
+          make uninstall DESTDIR="$DESTDIR"
+          find "$DESTDIR" -type f | grep . && exit 1
+          rm -rf "$DESTDIR"
       - name: Cache game data
         uses: actions/cache@v6
         with:
@@ -64,7 +71,7 @@ jobs:
           cp -r data dist/opentyrian/data
           cp COPYING dist/opentyrian/
           cp doc/tyrian-freeware-license.txt dist/opentyrian/licenses/Tyrian.txt
-          # SDL2 and SDL2_net are linked in statically, so their licences ship too
+          # SDL2 and SDL2_net are linked in statically, so their licenses ship too
           cp build/sdl/share/licenses/SDL2.txt dist/opentyrian/licenses/
           cp build/sdl/share/licenses/SDL2_net.txt dist/opentyrian/licenses/
           tar -czf "opentyrian-linux-${{ matrix.arch }}.tar.gz" -C dist opentyrian
