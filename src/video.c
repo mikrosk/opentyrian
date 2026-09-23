@@ -67,12 +67,17 @@ int can_init_scaler(unsigned int new_scaler, bool fullscreen)
 	
 	int w = scalers[new_scaler].width,
 	    h = scalers[new_scaler].height;
-	int flags = SDL_SWSURFACE | SDL_HWPALETTE | (fullscreen ? SDL_FULLSCREEN : 0);
+	int flags = SDL_HWSURFACE | SDL_DOUBLEBUF | (fullscreen ? SDL_FULLSCREEN : 0);
 	
 	// test each bitdepth
+#if defined(TARGET_ATARI)
+	// prefer the lowest depth: an 8 bpp mode writes the least to video memory
+	for (uint bpp = 8; bpp <= 32; bpp += 8)
+#else
 	for (uint bpp = 32; bpp > 0; bpp -= 8)
+#endif
 	{
-		uint temp_bpp = SDL_VideoModeOK(w, h, bpp, flags);
+		uint temp_bpp = SDL_VideoModeOK(w, h, bpp, flags | (bpp == 8 ? SDL_HWPALETTE : 0));
 		
 		if ((temp_bpp == 32 && scalers[new_scaler].scaler32) ||
 		    (temp_bpp == 16 && scalers[new_scaler].scaler16) ||
@@ -100,7 +105,7 @@ bool init_scaler(unsigned int new_scaler, bool fullscreen)
 	// at a higher depth makes SDL interpose a shadow surface that costs a full
 	// frame copy per flip and buys nothing, since the scalers convert palette
 	// indices to true colour themselves
-	int flags = SDL_SWSURFACE | (bpp == 8 ? SDL_HWPALETTE : 0) | (fullscreen ? SDL_FULLSCREEN : 0);
+	int flags = SDL_HWSURFACE | SDL_DOUBLEBUF | (bpp == 8 ? SDL_HWPALETTE : 0) | (fullscreen ? SDL_FULLSCREEN : 0);
 	
 	if (bpp == 0)
 		return false;
