@@ -30,12 +30,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if defined(TARGET_ATARI)
-#define OUTPUT_QUALITY 2  // 22.05 kHz
-#else
-#define OUTPUT_QUALITY 4  // 44.1 kHz
-#endif
-
 int audioSampleRate = 0;
 
 bool music_stopped = true;
@@ -81,6 +75,20 @@ static Uint8 channelVolume[CHANNEL_COUNT];
 
 static void audioCallback(void *userdata, Uint8 *stream, int size);
 
+static const char *audioFormatName(Uint16 format)
+{
+	switch (format)
+	{
+	case AUDIO_U8:     return "U8";
+	case AUDIO_S8:     return "S8";
+	case AUDIO_U16LSB: return "U16LSB";
+	case AUDIO_S16LSB: return "S16LSB";
+	case AUDIO_U16MSB: return "U16MSB";
+	case AUDIO_S16MSB: return "S16MSB";
+	default:           return "unknown";
+	}
+}
+
 static void load_song(unsigned int song_num);
 
 bool init_audio(void)
@@ -92,7 +100,7 @@ bool init_audio(void)
 
 	ask.freq = 11025 * OUTPUT_QUALITY;
 	ask.format = AUDIO_S16SYS;
-	ask.channels = 1;
+	ask.channels = OUTPUT_CHANNELS;
 	ask.samples = 256 * OUTPUT_QUALITY; // ~23 ms
 	ask.callback = audioCallback;
 
@@ -103,14 +111,42 @@ bool init_audio(void)
 		return false;
 	}
 
-	if (SDL_OpenAudio(&ask, NULL) == -1)
+	SDL_AudioSpec got;
+
+	if (SDL_OpenAudio(&ask, &got) == -1)
 	{
 		logError("Failed to open audio device: %s", SDL_GetError());
 		audio_disabled = true;
 		return false;
 	}
 
-	audioSampleRate = ask.freq;
+	// Mix at the rate the device runs at, because SDL1 cannot resample to an
+	// arbitrary rate.  Reopening at that rate without an obtained spec lets SDL
+	// convert format and channels without resampling.
+	if (got.format != ask.format || got.channels != ask.channels)
+	{
+		logInfo("Audio conversion: %s %d ch -> %s %d ch",
+		        audioFormatName(ask.format), ask.channels,
+		        audioFormatName(got.format), got.channels);
+
+		SDL_CloseAudio();
+
+		ask.freq = got.freq;
+
+		if (SDL_OpenAudio(&ask, NULL) == -1)
+		{
+			logError("Failed to open audio device: %s", SDL_GetError());
+			audio_disabled = true;
+			return false;
+		}
+	}
+	else
+	{
+		logInfo("Audio conversion: none (%s %d ch)", audioFormatName(got.format), got.channels);
+	}
+
+	audioSampleRate = got.freq;
+	logInfo("Audio sample rate: %d Hz", audioSampleRate);
 
 	samplesPerLdsUpdate = 2 * (audioSampleRate / ldsUpdate2Rate);
 	samplesPerLdsUpdateFrac = 2 * (audioSampleRate % ldsUpdate2Rate);
@@ -131,9 +167,11 @@ static void audioCallback(void *userdata, Uint8 *stream, int size)
 	(void)userdata;
 
 	Sint16 *const samples = (Sint16 *)stream;
-	const int samplesCount = size / sizeof (Sint16);
+	const int samplesCount = size / (sizeof (Sint16) * OUTPUT_CHANNELS);
 
-	if (!music_disabled && !music_stopped)
+	const bool musicPlaying = !music_disabled && !music_stopped;
+
+	if (musicPlaying)
 	{
 		Sint16 *remaining = samples;
 		int remainingCount = samplesCount;
@@ -160,22 +198,21 @@ static void audioCallback(void *userdata, Uint8 *stream, int size)
 
 			opl_update(remaining, count);
 
-			remaining += count;
+			remaining += count * OUTPUT_CHANNELS;
 			remainingCount -= count;
 
 			samplesUntilLdsUpdate -= count;
 		}
 	}
-	else
-	{
-		for (int i = 0; i < samplesCount; ++i)
-			samples[i] = 0;
-	}
 
 	Sint32 musicVolumeFactor = volumeFactorTable[musicVolume];
 	musicVolumeFactor *= 2;  // OPL emulator is too quiet
 
-	if (samples_disabled && !music_disabled)
+	if (samples_disabled && !musicPlaying)
+	{
+		memset(samples, 0, (size_t)samplesCount * OUTPUT_CHANNELS * sizeof (Sint16));
+	}
+	else if (samples_disabled)
 	{
 		// Mix music
 		Sint16 *remaining = samples;
@@ -185,13 +222,17 @@ static void audioCallback(void *userdata, Uint8 *stream, int size)
 			Sint32 sample = *remaining * musicVolumeFactor;
 
 			sample = FIXED_TO_INT(sample);
-			*remaining = MIN(MAX(INT16_MIN, sample), INT16_MAX);
-
-			remaining += 1;
+#if OUTPUT_CHANNELS == 2
+			sample = MIN(MAX(INT16_MIN, sample), INT16_MAX);
+			*remaining++ = sample;
+			*remaining++ = sample;
+#else
+			*remaining++ = MIN(MAX(INT16_MIN, sample), INT16_MAX);
+#endif
 			remainingCount -= 1;
 		}
 	}
-	else if (!samples_disabled)
+	else
 	{
 		Sint32 sampleVolumeFactor = volumeFactorTable[sampleVolume];
 		Sint32 sampleVolumeFactors[CHANNEL_VOLUME_LEVELS];
@@ -203,7 +244,7 @@ static void audioCallback(void *userdata, Uint8 *stream, int size)
 		int remainingCount = samplesCount;
 		while (remainingCount > 0)
 		{
-			Sint32 sample = *remaining * musicVolumeFactor;
+			Sint32 sample = musicPlaying ? *remaining * musicVolumeFactor : 0;
 
 			for (size_t i = 0; i < CHANNEL_COUNT; ++i)
 			{
@@ -217,9 +258,13 @@ static void audioCallback(void *userdata, Uint8 *stream, int size)
 			}
 
 			sample = FIXED_TO_INT(sample);
-			*remaining = MIN(MAX(INT16_MIN, sample), INT16_MAX);
-
-			remaining += 1;
+#if OUTPUT_CHANNELS == 2
+			sample = MIN(MAX(INT16_MIN, sample), INT16_MAX);
+			*remaining++ = sample;
+			*remaining++ = sample;
+#else
+			*remaining++ = MIN(MAX(INT16_MIN, sample), INT16_MAX);
+#endif
 			remainingCount -= 1;
 		}
 	}
