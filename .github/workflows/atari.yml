@@ -1,0 +1,60 @@
+name: Atari
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: write        # needed to attach assets on release events
+
+jobs:
+  build:
+    name: Atari (${{ matrix.title }})
+    runs-on: ubuntu-24.04
+    container:
+      image: scummvm/dockerized-toolchains:atari
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { title: Falcon,  name: falcon,  cpu: -m68020-60 }
+          - { title: FireBee, name: firebee, cpu: -mcpu=5475 }
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # git describe --tags for the version string
+      - name: Mark the checkout as safe for git describe
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      # the image exports its own CFLAGS/LDFLAGS, which would replace the Makefile's
+      - name: Compile check (debug, -Werror)
+        run: |
+          unset CFLAGS CXXFLAGS LDFLAGS
+          make -j"$(nproc)" PLATFORM=ATARI CPU="${{ matrix.cpu }}" debug
+      - name: Build (release)
+        run: |
+          unset CFLAGS CXXFLAGS LDFLAGS
+          make PLATFORM=ATARI clean
+          make -j"$(nproc)" PLATFORM=ATARI CPU="${{ matrix.cpu }}"
+      - name: Package
+        run: |
+          mkdir -p dist/opentyrian
+          cp opentyrian.gtp dist/opentyrian/
+          cp COPYING dist/opentyrian/COPYING.txt
+          cd dist && zip -r "../opentyrian-atari-${{ matrix.name }}.zip" opentyrian
+      - uses: actions/upload-artifact@v7
+        with:
+          archive: false
+          path: opentyrian-atari-${{ matrix.name }}.zip
+      - name: Attach to release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          apt-get update && apt-get install -y --no-install-recommends gh
+          tag="${{ github.event.release.tag_name }}"
+          asset="opentyrian-$tag-atari-${{ matrix.name }}.zip"
+          mv "opentyrian-atari-${{ matrix.name }}.zip" "$asset"
+          gh release upload "$tag" "$asset" --clobber

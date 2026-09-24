@@ -60,12 +60,17 @@ before `data`.
 
 ## Building
 
-Requirements: a C99 compiler, GNU make, pkg-config, SDL2, and, for network
-play, SDL2_net.
+Requirements: a C99 compiler, GNU make, pkg-config, SDL 1.2, and, for network
+play, SDL_net 1.2.
 
     make
 
-Network play is enabled automatically when SDL2_net is found.
+Network play is enabled automatically when SDL_net is found.
+
+For Atari, with the `m68k-atari-mintelf` toolchain:
+
+    make PLATFORM=ATARI                  # Falcon/TT
+    make PLATFORM=ATARI CPU=-mcpu=5475   # FireBee
 
 A Visual Studio solution is provided in `visualc/`.
 
