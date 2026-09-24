@@ -54,6 +54,10 @@ the following locations, searched in order:
 3. the system directory the build was configured with
    (`/usr/local/share/games/tyrian` by default; `C:\TYRIAN` on Windows)
 
+On Atari, the `tyrian21` folder from the archive is searched in the current
+directory (normally the one with the program) instead of the system directory,
+before `data`.
+
 ## Building
 
 Requirements: a C99 compiler, GNU make, pkg-config, SDL2, and, for network

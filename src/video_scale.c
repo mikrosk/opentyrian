@@ -80,17 +80,33 @@ void no_scale(SDL_Surface *src_surface, SDL_Surface *dst_surface)
 {
 	Uint8 *src = src_surface->pixels,
 	      *dst = dst_surface->pixels;
+	const int src_pitch = src_surface->pitch,
+	          dst_pitch = dst_surface->pitch;
 	
 #ifdef VGA_CENTERED
-	size_t blank = (dst_surface->h - src_surface->h) / 2 * dst_surface->pitch;
+	size_t blank = (dst_surface->h - src_surface->h) / 2 * dst_pitch;
 	memset(dst, 0, blank);
 	dst += blank;
 #endif
 	
-	memcpy(dst, src, src_surface->pitch * src_surface->h);
+	if (src_pitch == dst_pitch)
+	{
+		memcpy(dst, src, (size_t)src_pitch * src_surface->h);
+		dst += (size_t)src_pitch * src_surface->h;
+	}
+	else
+	{
+		// the pitches differ when the video mode is wider than the scaler output,
+		// so the image cannot be copied as one block
+		for (int y = src_surface->h; y > 0; y--)
+		{
+			memcpy(dst, src, src_pitch);
+			src += src_pitch;
+			dst += dst_pitch;
+		}
+	}
 	
 #ifdef VGA_CENTERED
-	dst += src_surface->pitch * src_surface->h;
 	memset(dst, 0, blank);
 #endif
 }

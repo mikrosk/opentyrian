@@ -269,7 +269,11 @@ static void loadOpenTyrianConfig(void)
 {
 	// defaults
 	fullscreen_enabled = false;
+#if defined(TARGET_ATARI)
+	set_scaler_by_name("None");
+#else
 	set_scaler_by_name("Scale2x");
+#endif
 	memcpy(keySettings, defaultKeySettings, sizeof(keySettings));
 	
 	Config *config = &opentyrian_config;

@@ -42,6 +42,9 @@ void step_fade_palette(int diff[256][3], int steps, unsigned int first_color, un
 void fade_palette(Palette colors, int steps, unsigned int first_color, unsigned int last_color);
 void fade_solid(SDL_Color color, int steps, unsigned int first_color, unsigned int last_color);
 
+void mark_palette_changed(void);
+void apply_palette(void);
+
 void fade_black(int steps);
 void fade_white(int steps);
 

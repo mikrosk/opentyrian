@@ -30,14 +30,22 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if defined(TARGET_ATARI)
+#define OUTPUT_QUALITY 2  // 22.05 kHz
+#else
 #define OUTPUT_QUALITY 4  // 44.1 kHz
+#endif
 
 int audioSampleRate = 0;
 
 bool music_stopped = true;
 unsigned int song_playing = 0;
 
+#if defined(TARGET_ATARI)
+bool audio_disabled = false, music_disabled = true, samples_disabled = false;
+#else
 bool audio_disabled = false, music_disabled = false, samples_disabled = false;
+#endif
 
 static Uint8 musicVolume = 255;
 static Uint8 sampleVolume = 255;
@@ -85,7 +93,7 @@ bool init_audio(void)
 	ask.freq = 11025 * OUTPUT_QUALITY;
 	ask.format = AUDIO_S16SYS;
 	ask.channels = 1;
-	ask.samples = 256 * OUTPUT_QUALITY; // ~23 ms
+	ask.samples = 1024 * OUTPUT_QUALITY; // ~92 ms
 	ask.callback = audioCallback;
 
 	if (SDL_InitSubSystem(SDL_INIT_AUDIO) != 0)

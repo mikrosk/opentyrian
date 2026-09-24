@@ -4,22 +4,26 @@ ifneq ($(filter Msys Cygwin, $(shell uname -o)), )
     PLATFORM := WIN32
     TYRIAN_DIR = C:\\TYRIAN
 else
-    PLATFORM := UNIX
+    #PLATFORM := UNIX
+    PLATFORM := ATARI
     TYRIAN_DIR = $(gamesdir)/tyrian
 endif
 
 # true, false, or auto (true if pkg-config can find SDL_net)
-WITH_NETWORK := auto
+WITH_NETWORK := false
 
 ################################################################################
 
 # see https://www.gnu.org/prep/standards/html_node/Makefile-Conventions.html
 
+CPU := -m68020-60
+#CPU := -mcpu=5475
+
 SHELL = /bin/sh
 
-CC ?= gcc
+CC := m68k-atari-mintelf-gcc
 INSTALL ?= install
-PKG_CONFIG ?= pkg-config
+PKG_CONFIG ?= m68k-atari-mintelf-pkg-config
 WINDRES ?= windres
 
 VCS_IDREV ?= (git describe --tags || git rev-parse --short HEAD)
@@ -46,7 +50,7 @@ gamesdir ?= $(datadir)/games
 
 ###
 
-TARGET := opentyrian
+TARGET := opentyrian.gtp
 RES :=
 ifeq ($(PLATFORM), WIN32)
     TARGET := opentyrian.exe
@@ -91,8 +95,8 @@ CFLAGS ?= -pedantic \
           -Wextra \
           $(WNO_FORMAT_TRUNCATION) \
           -Wno-missing-field-initializers \
-          -O2
-LDFLAGS ?=
+          -O2 -fomit-frame-pointer $(CPU)
+LDFLAGS ?= -s -Wl,--msuper-memory -Wl,--stack,256k $(CPU)
 LDLIBS ?=
 
 ifeq ($(WITH_NETWORK), true)

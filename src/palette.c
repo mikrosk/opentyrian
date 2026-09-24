@@ -26,6 +26,7 @@
 #include "video.h"
 
 #include <assert.h>
+#include <stdbool.h>
 #include <stdlib.h>
 
 static Uint32 rgb_to_yuv(int r, int g, int b);
@@ -35,6 +36,10 @@ size_t palettesCount = 0;
 
 static Palette palette;
 Uint32 rgb_palette[256], yuv_palette[256];
+
+// in 8 bpp modes the palette is passed to SDL together with the next frame,
+// so that it changes at the same time as the picture, as in the other modes
+static bool palette_changed = false;
 
 Palette colors;
 
@@ -99,7 +104,7 @@ void set_palette(Palette colors, unsigned int first_color, unsigned int last_col
 	}
 	
 	if (bpp == 8)
-		SDL_SetColors(surface, palette, first_color, last_color - first_color + 1);
+		palette_changed = true;
 }
 
 void set_colors(SDL_Color color, unsigned int first_color, unsigned int last_color)
@@ -119,7 +124,7 @@ void set_colors(SDL_Color color, unsigned int first_color, unsigned int last_col
 	}
 	
 	if (bpp == 8)
-		SDL_SetColors(surface, palette, first_color, last_color - first_color + 1);
+		palette_changed = true;
 }
 
 void init_step_fade_palette(int diff[256][3], Palette colors, unsigned int first_color, unsigned int last_color)
@@ -169,7 +174,7 @@ void step_fade_palette(int diff[256][3], int steps, unsigned int first_color, un
 	}
 	
 	if (bpp == 8)
-		SDL_SetColors(surface, palette, 0, 256);
+		palette_changed = true;
 }
 
 void fade_palette(Palette colors, int steps, unsigned int first_color, unsigned int last_color)
@@ -182,14 +187,21 @@ void fade_palette(Palette colors, int steps, unsigned int first_color, unsigned 
 	static int diff[256][3];
 	init_step_fade_palette(diff, colors, first_color, last_color);
 	
+	const int total_steps = steps;
+	
 	for (; steps > 0; steps--)
 	{
 		setFrameCount(1);
 		
 		step_fade_palette(diff, steps, first_color, last_color);
 		
-		if (bpp != 8)
+		// callers draw into VGAScreen and fade without showing it first, as
+		// if VGAScreen were video memory; an 8 bpp mode only needs it shown
+		// once, since palette changes alone update the picture afterwards
+		if (bpp != 8 || steps == total_steps)
 			JE_showVGA();
+		else
+			apply_palette();
 		
 		waitUntilElapsed();
 	}
@@ -209,14 +221,21 @@ void fade_solid(SDL_Color color, int steps, unsigned int first_color, unsigned i
 	static int diff[256][3];
 	init_step_fade_solid(diff, color, first_color, last_color);
 	
+	const int total_steps = steps;
+	
 	for (; steps > 0; steps--)
 	{
 		setFrameCount(1);
 		
 		step_fade_palette(diff, steps, first_color, last_color);
 		
-		if (bpp != 8)
+		// callers draw into VGAScreen and fade without showing it first, as
+		// if VGAScreen were video memory; an 8 bpp mode only needs it shown
+		// once, since palette changes alone update the picture afterwards
+		if (bpp != 8 || steps == total_steps)
 			JE_showVGA();
+		else
+			apply_palette();
 		
 		waitUntilElapsed();
 	}
@@ -224,6 +243,21 @@ void fade_solid(SDL_Color color, int steps, unsigned int first_color, unsigned i
 	// Discard input during fade.
 	keyboardClearInput();
 	mouseClearInput();
+}
+
+void mark_palette_changed(void)
+{
+	palette_changed = true;
+}
+
+void apply_palette(void)
+{
+	SDL_Surface *const surface = SDL_GetVideoSurface();
+	
+	if (palette_changed && surface->format->BitsPerPixel == 8)
+		SDL_SetColors(surface, palette, 0, 256);
+	
+	palette_changed = false;
 }
 
 void fade_black(int steps)
