@@ -96,7 +96,11 @@ bool init_scaler(unsigned int new_scaler, bool fullscreen)
 	int w = scalers[new_scaler].width,
 	    h = scalers[new_scaler].height;
 	int bpp = can_init_scaler(new_scaler, fullscreen);
-	int flags = SDL_SWSURFACE | SDL_HWPALETTE | (fullscreen ? SDL_FULLSCREEN : 0);
+	// a hardware palette is only meaningful for an 8 bpp surface; asking for one
+	// at a higher depth makes SDL interpose a shadow surface that costs a full
+	// frame copy per flip and buys nothing, since the scalers convert palette
+	// indices to true colour themselves
+	int flags = SDL_SWSURFACE | (bpp == 8 ? SDL_HWPALETTE : 0) | (fullscreen ? SDL_FULLSCREEN : 0);
 	
 	if (bpp == 0)
 		return false;
@@ -186,7 +190,19 @@ void scale_and_flip(SDL_Surface *src_surface)
 	SDL_Surface *dst_surface = SDL_GetVideoSurface();
 	
 	assert(scaler_function != NULL);
+	
+	// the surface carries a non-zero offset when the video mode is larger than
+	// the scaler output and SDL centres it, so it must be locked before its
+	// pixel pointer is used
+	const bool must_lock = SDL_MUSTLOCK(dst_surface);
+	
+	if (must_lock && SDL_LockSurface(dst_surface) == -1)
+		return;
+	
 	scaler_function(src_surface, dst_surface);
+	
+	if (must_lock)
+		SDL_UnlockSurface(dst_surface);
 	
 	SDL_Flip(dst_surface);
 }
