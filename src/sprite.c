@@ -25,6 +25,7 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <stdlib.h>
 
 Sprite_array sprite_table[SPRITE_TABLES_MAX];
 

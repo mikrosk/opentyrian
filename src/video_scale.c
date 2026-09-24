@@ -25,6 +25,7 @@
 #include "video.h"
 
 #include <assert.h>
+#include <string.h>
 
 static void no_scale(SDL_Surface *src_surface, SDL_Surface *dst_surface);
 static void nn_32(SDL_Surface *src_surface, SDL_Surface *dst_surface);

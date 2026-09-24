@@ -27,6 +27,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 
 void JE_loadPCX(const char *filename) // this is only meant to load tshp2.pcx
 {

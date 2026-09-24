@@ -28,6 +28,7 @@
 #include "video.h"
 
 #include <assert.h>
+#include <string.h>
 
 typedef struct FileHeader
 {

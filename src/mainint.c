@@ -2384,7 +2384,7 @@ void JE_playCredits(void)
 	JE_clr256(VGAScreen);
 	JE_showVGA();
 	fade_palette(colors, 2, 0, 255);
-	
+
 	//tempScreenSeg = VGAScreenSeg;
 
 	const uint ticks_max = COUNTOF(credstr) * 20 * 3;
@@ -2393,9 +2393,9 @@ void JE_playCredits(void)
 		setFrameCount(1);
 
 		JE_clr256(VGAScreen);
-		
+
 		blit_sprite_hv(VGAScreenSeg, 319 - sprite(EXTRA_SHAPES, currentpic)->width, 100 - (sprite(EXTRA_SHAPES, currentpic)->height / 2), EXTRA_SHAPES, currentpic, 0x0, fade - 15);
-		
+
 		fade += fadechg;
 		if (fade == 0 && fadechg == -1)
 		{
@@ -2460,7 +2460,7 @@ void JE_playCredits(void)
 			if (shipxca > 0 && shipxc > 0)
 				shipxwait = 1;
 		}
-		
+
 		uint ship_sprite = ships[currentship].shipgraphic;
 		if (shipxc < -10)
 			ship_sprite -= (shipxc < -20) ? 4 : 2;
@@ -2471,7 +2471,7 @@ void JE_playCredits(void)
 
 		const int bottom_line = (ticks / 3) / 20;
 		int y = 20 - ((ticks / 3) % 20);
-		
+
 		for (int line = bottom_line - 10; line < bottom_line; ++line)
 		{
 			if (line >= 0 && (uint)line < COUNTOF(credstr))
@@ -2480,26 +2480,26 @@ void JE_playCredits(void)
 				{
 					const Uint8 color = credstr[line][0] - 65;
 					const char *text = &credstr[line][1];
-					
+
 					const int x = 110 - JE_textWidth(text, SMALL_FONT_SHAPES) / 2;
-					
+
 					JE_outTextAdjust(VGAScreen, x + abs((y / 18) % 4 - 2) - 1, y - 1, text, color, -8, SMALL_FONT_SHAPES, false);
 					JE_outTextAdjust(VGAScreen, x,                             y,     text, color, -2, SMALL_FONT_SHAPES, false);
 				}
 			}
-			
+
 			y += 20;
 		}
-		
+
 		fill_rectangle_xy(VGAScreen, 0,  0, 319, 10, 0);
 		fill_rectangle_xy(VGAScreen, 0, 190, 319, 199, 0);
-		
+
 		if (currentpic == sprite_table[EXTRA_SHAPES].count - 1)
 			JE_outTextAdjust(VGAScreen, 5, 180, miscText[54], 2, -2, SMALL_FONT_SHAPES, false);  // levels-in-episode
 
 		if (bottom_line == COUNTOF(credstr) - 8)
 			fade_song();
-		
+
 		if (ticks == ticks_max - 1)
 		{
 			--ticks;
@@ -2511,9 +2511,9 @@ void JE_playCredits(void)
 		if (waitUntilGetInputOrElapsed())
 			break;
 	}
-	
+
 	fade_black(10);
-	
+
 	free_sprites(EXTRA_SHAPES);
 }
 

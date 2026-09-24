@@ -1,4 +1,4 @@
-/* 
+/*
  * OpenTyrian: A modern cross-platform port of Tyrian
  * Copyright (C) The OpenTyrian Development Team
  *
@@ -21,6 +21,7 @@
 
 #include "SDL_types.h"
 
+#include <math.h>
 #include <stdbool.h>
 
 #ifndef COUNTOF
