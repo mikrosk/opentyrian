@@ -28,20 +28,17 @@ jobs:
         with:
           fetch-depth: 0   # git describe --tags for the version string
       - name: Install dependencies
-        # The distro libsdl2-dev is only for the -Werror compile check.  The
-        # release links a static SDL2 built from source (make_linux.sh), so
+        # The distro libsdl1.2-dev is only for the -Werror compile check.  The
+        # release links a static SDL 1.2 built from source (make_linux.sh), so
         # the -dev packages after it are HEADERS for SDL's dlopen'ed backends
         # - nothing from them is linked into the binary.
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            build-essential cmake pkg-config curl unzip libsdl2-dev libsdl2-net-dev \
+            build-essential pkg-config curl unzip autotools-dev libsdl1.2-dev libsdl-net1.2-dev \
             libasound2-dev libpulse-dev libx11-dev libxext-dev libxrandr-dev \
-            libxcursor-dev libxfixes-dev libxi-dev libxss-dev libwayland-dev \
-            libxkbcommon-dev libdecor-0-dev libegl1-mesa-dev libgl1-mesa-dev \
-            libgles2-mesa-dev libgbm-dev libdrm-dev libdbus-1-dev libudev-dev \
-            wayland-protocols libpipewire-0.3-dev
-      - name: Compile check (debug, -Werror, distro SDL2)
+            libxrender-dev
+      - name: Compile check (debug, -Werror, distro SDL 1.2)
         run: make -j"$(nproc)" debug
       - name: Smoke test
         run: ./opentyrian --help
@@ -57,12 +54,12 @@ jobs:
         with:
           path: data
           key: tyrian21-data-v1
-      - name: Cache static SDL2 build
+      - name: Cache static SDL build
         uses: actions/cache@v6
         with:
           path: build/sdl
-          key: sdl2-static-${{ matrix.arch }}-${{ hashFiles('make_linux.sh') }}
-      - name: Build (make_linux.sh, static SDL2)
+          key: sdl1-static-${{ matrix.arch }}-${{ hashFiles('make_linux.sh') }}
+      - name: Build (make_linux.sh, static SDL 1.2)
         run: ./make_linux.sh
       - name: Package (binary + game data)
         run: |
@@ -71,20 +68,20 @@ jobs:
           cp -r data dist/opentyrian/data
           cp COPYING dist/opentyrian/
           cp doc/tyrian-freeware-license.txt dist/opentyrian/licenses/Tyrian.txt
-          # SDL2 and SDL2_net are linked in statically, so their licenses ship too
-          cp build/sdl/share/licenses/SDL2.txt dist/opentyrian/licenses/
-          cp build/sdl/share/licenses/SDL2_net.txt dist/opentyrian/licenses/
+          # SDL and SDL_net are linked in statically, so their licenses ship too
+          cp build/sdl/share/licenses/SDL.txt dist/opentyrian/licenses/
+          cp build/sdl/share/licenses/SDL_net.txt dist/opentyrian/licenses/
           tar -czf "opentyrian-linux-${{ matrix.arch }}.tar.gz" -C dist opentyrian
       - name: Extract the package
         run: mkdir -p pkgtest && tar -xzf "opentyrian-linux-${{ matrix.arch }}.tar.gz" -C pkgtest
       - name: Verify the package is self-contained
-        # In a bare Debian container: no SDL, no libdecor, nothing installed.
+        # In a bare Debian container: no SDL, no X11, nothing installed.
         # The runner itself proves nothing here - it has all of those, and a
         # missing dependency would be silently satisfied.
         run: docker run --rm -v "$PWD/pkgtest:/pkg:ro" -w / debian:bookworm-slim /pkg/opentyrian/opentyrian --help
       - uses: actions/upload-artifact@v7
         with:
-          name: opentyrian-linux-${{ matrix.arch }}
+          archive: false
           path: opentyrian-linux-${{ matrix.arch }}.tar.gz
       - name: Attach to release
         if: github.event_name == 'release'
