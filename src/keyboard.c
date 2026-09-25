@@ -1,6 +1,6 @@
-/* 
+/*
  * OpenTyrian: A modern cross-platform port of Tyrian
- * Copyright (C) 2007-2009  The OpenTyrian Development Team
+ * Copyright (C) The OpenTyrian Development Team
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -19,156 +19,177 @@
 #include "keyboard.h"
 
 #include "joystick.h"
+#include "mouse.h"
 #include "network.h"
+#include "nortsong.h"
 #include "opentyr.h"
 #include "video.h"
 #include "video_scale.h"
 
 #include "SDL.h"
 
-#include <stdio.h>
-
+#define SDL_POLL_INTERVAL 10
 
 JE_boolean ESCPressed;
 
-JE_boolean newkey, newmouse, keydown, mousedown;
-SDLKey lastkey_sym;
-SDLMod lastkey_mod;
-unsigned char lastkey_char;
-Uint8 lastmouse_but;
-Uint16 lastmouse_x, lastmouse_y;
-JE_boolean mouse_pressed[3] = {false, false, false};
-Uint16 mouse_x, mouse_y;
+bool windowHasFocus = true;
 
-Uint8 keysactive[SDLK_LAST];
+bool keysactive[SDLK_LAST];
 
-#ifdef NDEBUG
-bool input_grab_enabled = true;
-#else
-bool input_grab_enabled = false;
-#endif
+// There are too many virtual keys, so just keep track of the few we need.
+const SDLKey lordKeySyms[] = { SDLK_l, SDLK_o, SDLK_r, SDLK_d };
+bool lordKeySymsDown[4] = { 0 };
 
+static KeyboardInput keyboardInputs[32];
+static size_t keyboardInputsFront;
+static size_t keyboardInputsBack;
+static size_t keyboardInputsCount;
 
-void flush_events_buffer( void )
+Sint32 mouseX;
+Sint32 mouseY;
+Uint8 mouseButtonsDown;
+
+static MouseInput mouseInputs[4];
+static size_t mouseInputsFront;
+static size_t mouseInputsBack;
+static size_t mouseInputsCount;
+static bool mouseHasMotionInput;
+
+static bool mouseRelativeEnabled;
+
+// Relative mouse position in window coordinates.
+static Sint32 mouseWindowXRelative;
+static Sint32 mouseWindowYRelative;
+
+// Mapping from CP437 to UCS for 0x80 to 0xA8.
+static const Uint16 ucsMap[] =
 {
-	SDL_Event ev;
+	0x00C7, 0x00FC, 0x00E9, 0x00E2, 0x00E4, 0x00E0, 0x00E5, 0x00E7,
+	0x00EA, 0x00EB, 0x00E8, 0x00EF, 0x00EE, 0x00EC, 0x00C4, 0x00C5,
+	0x00C9, 0x00E6, 0x00C6, 0x00F4, 0x00F6, 0x00F2, 0x00FB, 0x00F9,
+	0x00FF, 0x00D6, 0x00DC, 0x00A2, 0x00A3, 0x00A5, 0x20A7, 0x0192,
+	0x00E1, 0x00ED, 0x00F3, 0x00FA, 0x00F1, 0x00D1, 0x00AA, 0x00BA,
+	0x00BF,
+};
 
-	while (SDL_PollEvent(&ev));
-}
-
-void wait_input( JE_boolean keyboard, JE_boolean mouse, JE_boolean joystick )
-{
-	service_SDL_events(false);
-	while (!((keyboard && keydown) || (mouse && mousedown) || (joystick && joydown)))
-	{
-		SDL_Delay(SDL_POLL_INTERVAL);
-		push_joysticks_as_keyboard();
-		service_SDL_events(false);
-		
-#ifdef WITH_NETWORK
-		if (isNetworkGame)
-			network_check();
-#endif
-	}
-}
-
-void wait_noinput( JE_boolean keyboard, JE_boolean mouse, JE_boolean joystick )
-{
-	service_SDL_events(false);
-	while ((keyboard && keydown) || (mouse && mousedown) || (joystick && joydown))
-	{
-		SDL_Delay(SDL_POLL_INTERVAL);
-		poll_joysticks();
-		service_SDL_events(false);
-		
-#ifdef WITH_NETWORK
-		if (isNetworkGame)
-			network_check();
-#endif
-	}
-}
-
-void init_keyboard( void )
+void init_keyboard(void)
 {
 	SDL_EnableKeyRepeat(500, 60);
 
-	newkey = newmouse = false;
-	keydown = mousedown = false;
+	SDL_EnableUNICODE(0);
 
-	SDL_EnableUNICODE(1);
+	SDL_ShowCursor(SDL_FALSE);
 }
 
-void input_grab( bool enable )
+bool keyboardHasInput(void)
 {
-#if defined(TARGET_GP2X) || defined(TARGET_DINGUX)
-	enable = true;
-#endif
-	
-	input_grab_enabled = enable || fullscreen_enabled;
-	
-	SDL_ShowCursor(input_grab_enabled ? SDL_DISABLE : SDL_ENABLE);
-#ifdef NDEBUG
-	SDL_WM_GrabInput(input_grab_enabled ? SDL_GRAB_ON : SDL_GRAB_OFF);
-#endif
+	return keyboardInputsCount > 0;
 }
 
-JE_word JE_mousePosition( JE_word *mouseX, JE_word *mouseY )
+bool keyboardGetInput(KeyboardInput *out_input)
 {
-	service_SDL_events(false);
-	*mouseX = mouse_x;
-	*mouseY = mouse_y;
-	return mousedown ? lastmouse_but : 0;
-}
-
-void set_mouse_position( int x, int y )
-{
-	if (input_grab_enabled)
+	if (keyboardInputsCount > 0)
 	{
-		SDL_WarpMouse(x * scalers[scaler].width / vga_width, y * scalers[scaler].height / vga_height);
-		mouse_x = x;
-		mouse_y = y;
+		assert(keyboardInputsFront < COUNTOF(keyboardInputs));
+		if (out_input != NULL)
+			*out_input = keyboardInputs[keyboardInputsFront];
+		keyboardInputsFront = keyboardInputsFront == COUNTOF(keyboardInputs) - 1 ? 0 : keyboardInputsFront + 1;
+		keyboardInputsCount -= 1;
+		return true;
 	}
+
+	return false;
 }
 
-void service_SDL_events( JE_boolean clear_new )
+void keyboardClearInput(void)
+{
+	keyboardInputsFront = 0;
+	keyboardInputsBack = 0;
+	keyboardInputsCount = 0;
+}
+
+bool mouseHasInput(InputFlags flags)
+{
+	return mouseInputsCount > 0 || ((flags & INPUT_NO_MOTION) == 0 && mouseHasMotionInput);
+}
+
+bool mouseGetInput(InputFlags flags, MouseInput *out_input)
+{
+	if (mouseInputsCount > 0)
+	{
+		assert(mouseInputsFront < COUNTOF(mouseInputs));
+		if (out_input != NULL)
+			*out_input = mouseInputs[mouseInputsFront];
+		mouseInputsFront = mouseInputsFront == COUNTOF(mouseInputs) - 1 ? 0 : mouseInputsFront + 1;
+		mouseInputsCount -= 1;
+		return true;
+	}
+
+	if ((flags & INPUT_NO_MOTION) == 0 && mouseHasMotionInput)
+	{
+		if (out_input != NULL)
+		{
+			*out_input = (MouseInput)
+			{
+				.x = mouseX,
+				.y = mouseY,
+				.button = 0,
+			};
+		}
+		mouseHasMotionInput = false;
+		return true;
+	}
+
+	return false;
+}
+
+void mouseClearInput(void)
+{
+	mouseInputsFront = 0;
+	mouseInputsBack = 0;
+	mouseInputsCount = 0;
+
+	mouseHasMotionInput = false;
+}
+
+void mouseSetRelative(bool enable)
+{
+	SDL_WM_GrabInput(enable && windowHasFocus ? SDL_GRAB_ON : SDL_GRAB_OFF);
+
+	mouseRelativeEnabled = enable;
+
+	mouseWindowXRelative = 0;
+	mouseWindowYRelative = 0;
+}
+
+void mouseGetRelativePosition(Sint32 *const out_x, Sint32 *const out_y)
+{
+	scaleWindowDistanceToScreen(&mouseWindowXRelative, &mouseWindowYRelative);
+	*out_x = mouseWindowXRelative;
+	*out_y = mouseWindowYRelative;
+
+	mouseWindowXRelative = 0;
+	mouseWindowYRelative = 0;
+}
+
+void handleSdlEvents(void)
 {
 	SDL_Event ev;
-	
-	if (clear_new)
-		newkey = newmouse = false;
-	
+
 	while (SDL_PollEvent(&ev))
 	{
 		switch (ev.type)
 		{
 			case SDL_ACTIVEEVENT:
-				if (ev.active.state == SDL_APPINPUTFOCUS && !ev.active.gain)
-					input_grab(false);
-				break;
-			
-			case SDL_MOUSEMOTION:
-				mouse_x = ev.motion.x * vga_width / scalers[scaler].width;
-				mouse_y = ev.motion.y * vga_height / scalers[scaler].height;
-				break;
-			case SDL_KEYDOWN:
-				if (ev.key.keysym.mod & KMOD_CTRL)
+				if (ev.active.state & SDL_APPINPUTFOCUS)
 				{
-					/* <ctrl><bksp> emergency kill */
-					if (ev.key.keysym.sym == SDLK_BACKSPACE)
-					{
-						puts("\n\n\nCtrl+Backspace pressed. Doing emergency quit.\n");
-						SDL_Quit();
-						exit(1);
-					}
-					
-					/* <ctrl><f10> toggle input grab */
-					if (ev.key.keysym.sym == SDLK_F10)
-					{
-						input_grab(!input_grab_enabled);
-						break;
-					}
+					windowHasFocus = ev.active.gain;
+
+					mouseSetRelative(mouseRelativeEnabled);
 				}
-				
+				break;
+
+			case SDL_KEYDOWN:
 				if (ev.key.keysym.mod & KMOD_ALT)
 				{
 					/* <alt><enter> toggle fullscreen */
@@ -182,8 +203,8 @@ void service_SDL_events( JE_boolean clear_new )
 						}
 						break;
 					}
-					
-					/* <alt><tab> disable input grab and fullscreen */
+
+					/* <alt><tab> disable fullscreen */
 					if (ev.key.keysym.sym == SDLK_TAB)
 					{
 						if (!init_scaler(scaler, false) &&             // try windowed
@@ -192,64 +213,221 @@ void service_SDL_events( JE_boolean clear_new )
 						{
 							exit(EXIT_FAILURE);
 						}
-						
-						input_grab(false);
 						break;
 					}
 				}
 
-				keysactive[ev.key.keysym.sym] = 1;
-				
-				newkey = true;
-				lastkey_sym = ev.key.keysym.sym;
-				lastkey_mod = ev.key.keysym.mod;
-				lastkey_char = ev.key.keysym.unicode;
-				keydown = true;
-				return;
-			case SDL_KEYUP:
-				keysactive[ev.key.keysym.sym] = 0;
-				keydown = false;
-				return;
-			case SDL_MOUSEBUTTONDOWN:
-				if (!input_grab_enabled)
+				keysactive[ev.key.keysym.sym] = true;
+
+				for (size_t i = 0; i < COUNTOF(lordKeySyms); ++i)
+					lordKeySymsDown[i] |= ev.key.keysym.sym == lordKeySyms[i];
+
+				if (keyboardInputsCount < COUNTOF(keyboardInputs))
 				{
-					input_grab(true);
-					break;
+					assert(keyboardInputsBack < COUNTOF(keyboardInputs));
+					KeyboardInput *const input = &keyboardInputs[keyboardInputsBack];
+					input->sym = ev.key.keysym.sym;
+					input->scancode = ev.key.keysym.sym;
+					input->mod = ev.key.keysym.mod;
+					input->ch = 0;
+					keyboardInputsBack = keyboardInputsBack == COUNTOF(keyboardInputs) - 1 ? 0 : keyboardInputsBack + 1;
+					keyboardInputsCount += 1;
 				}
-				// fall through
-			case SDL_MOUSEBUTTONUP:
-				if (ev.type == SDL_MOUSEBUTTONDOWN)
+
+				// Text input is enabled by SDL_EnableUNICODE().
+				if (ev.key.keysym.unicode >= 0x20 && ev.key.keysym.unicode != 0x7F)
 				{
-					newmouse = true;
-					lastmouse_but = ev.button.button;
-					lastmouse_x = ev.button.x * vga_width / scalers[scaler].width;
-					lastmouse_y = ev.button.y * vga_height / scalers[scaler].height;
-					mousedown = true;
+					const Uint16 cp = ev.key.keysym.unicode;
+
+					// Map codepoint to CP437 character.
+					Uint8 ch = 0;
+					if (cp < 0x80)
+					{
+						ch = cp;
+					}
+					else
+					{
+						for (size_t j = 0; j < COUNTOF(ucsMap); ++j)
+						{
+							if (cp == ucsMap[j])
+							{
+								ch = 0x80 + j;
+								break;
+							}
+						}
+					}
+
+					if (ch != 0 && keyboardInputsCount < COUNTOF(keyboardInputs))
+					{
+						assert(keyboardInputsBack < COUNTOF(keyboardInputs));
+						KeyboardInput *const input = &keyboardInputs[keyboardInputsBack];
+						input->sym = -1;  // Text; not a key.
+						input->scancode = -1;  // Text; not a key.
+						input->mod = KMOD_NONE;
+						input->ch = ch;
+						keyboardInputsBack = keyboardInputsBack == COUNTOF(keyboardInputs) - 1 ? 0 : keyboardInputsBack + 1;
+						keyboardInputsCount += 1;
+					}
 				}
-				else
-				{
-					mousedown = false;
-				}
-				switch (ev.button.button)
-				{
-					case SDL_BUTTON_LEFT:
-						mouse_pressed[0] = mousedown; break;
-					case SDL_BUTTON_RIGHT:
-						mouse_pressed[1] = mousedown; break;
-					case SDL_BUTTON_MIDDLE:
-						mouse_pressed[2] = mousedown; break;
-				}
+
+				mouseInactive = true;
 				break;
+
+			case SDL_KEYUP:
+				keysactive[ev.key.keysym.sym] = false;
+
+				for (size_t i = 0; i < COUNTOF(lordKeySyms); ++i)
+					lordKeySymsDown[i] &= ev.key.keysym.sym != lordKeySyms[i];
+				break;
+
+			case SDL_MOUSEMOTION:
+				mouseX = ev.motion.x;
+				mouseY = ev.motion.y;
+				mapWindowPointToScreen(&mouseX, &mouseY);
+
+				mouseHasMotionInput = true;
+
+				if (mouseRelativeEnabled && windowHasFocus)
+				{
+					mouseWindowXRelative += ev.motion.xrel;
+					mouseWindowYRelative += ev.motion.yrel;
+				}
+
+				// Show system mouse pointer if outside screen.
+				SDL_ShowCursor(mouseX < 0 || mouseX >= vga_width ||
+				               mouseY < 0 || mouseY >= vga_height ? SDL_ENABLE : SDL_DISABLE);
+
+				if (ev.motion.xrel != 0 || ev.motion.yrel != 0)
+					mouseInactive = false;
+				break;
+
+			case SDL_MOUSEBUTTONDOWN:
+				if (mouseInputsCount < COUNTOF(mouseInputs))
+				{
+					Sint32 x = ev.button.x;
+					Sint32 y = ev.button.y;
+					mapWindowPointToScreen(&x, &y);
+
+					assert(mouseInputsBack < COUNTOF(mouseInputs));
+					MouseInput *const input = &mouseInputs[mouseInputsBack];
+					input->button = ev.button.button;
+					input->x = x;
+					input->y = y;
+					mouseInputsBack = mouseInputsBack == COUNTOF(mouseInputs) - 1 ? 0 : mouseInputsBack + 1;
+					mouseInputsCount += 1;
+				}
+
+				mouseButtonsDown |= SDL_BUTTON(ev.button.button);
+
+				mouseInactive = false;
+				break;
+
+			case SDL_MOUSEBUTTONUP:
+				mouseButtonsDown &= ~SDL_BUTTON(ev.button.button);
+				break;
+
 			case SDL_QUIT:
-				/* TODO: Call the cleanup code here. */
 				exit(0);
 				break;
 		}
 	}
 }
 
-void JE_clearKeyboard( void )
+bool hasInput(InputFlags flags)
 {
-	// /!\ Doesn't seems important. I think. D:
+	return keyboardHasInput() || mouseHasInput(flags);
 }
 
+bool getInput(void)
+{
+	return keyboardGetInput(NULL) || mouseGetInput(INPUT_NO_MOTION, NULL);
+}
+
+void waitUntilHasInput(InputFlags flags)
+{
+	while (true)
+	{
+		NETWORK_KEEP_ALIVE();
+
+		push_joysticks_as_keyboard();
+		handleSdlEvents();
+
+		if (hasInput(flags))
+			return;
+
+		SDL_Delay(SDL_POLL_INTERVAL);
+	}
+}
+
+void waitUntilGetInput(void)
+{
+	while (true)
+	{
+		NETWORK_KEEP_ALIVE();
+
+		push_joysticks_as_keyboard();
+		handleSdlEvents();
+
+		if (getInput())
+			return;
+
+		SDL_Delay(SDL_POLL_INTERVAL);
+	}
+}
+
+void waitUntilElapsed(void)
+{
+	while (true)
+	{
+		NETWORK_KEEP_ALIVE();
+
+		push_joysticks_as_keyboard();
+		handleSdlEvents();
+
+		Uint32 delay = getFrameCountTicks();
+		if (delay == 0)
+			return;
+
+		SDL_Delay(MIN(delay, SDL_POLL_INTERVAL));
+	}
+}
+
+bool waitUntilHasInputOrElapsed(void)
+{
+	while (true)
+	{
+		NETWORK_KEEP_ALIVE();
+
+		push_joysticks_as_keyboard();
+		handleSdlEvents();
+
+		if (hasInput(INPUT_NO_MOTION))
+			return true;
+
+		Uint32 delay = getFrameCountTicks();
+		if (delay == 0)
+			return false;
+
+		SDL_Delay(MIN(delay, SDL_POLL_INTERVAL));
+	}
+}
+
+bool waitUntilGetInputOrElapsed(void)
+{
+	while (true)
+	{
+		NETWORK_KEEP_ALIVE();
+
+		push_joysticks_as_keyboard();
+		handleSdlEvents();
+
+		if (getInput())
+			return true;
+
+		Uint32 delay = getFrameCountTicks();
+		if (delay == 0)
+			return false;
+
+		SDL_Delay(MIN(delay, SDL_POLL_INTERVAL));
+	}
+}

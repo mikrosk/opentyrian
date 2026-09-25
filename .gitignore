@@ -1,5 +1,6 @@
 /data/
 
+newsh$.shp
 opentyrian.cfg
 tyrian.cfg
 tyrian.sav
@@ -18,10 +19,6 @@ tyrian.sav
 /SDL.dll
 /SDL_net.dll
 
-# Windows runtime output
-/stderr.txt
-/stdout.txt
-
 # MSVC build output and project
 /opentyrian-*.exe
 /opentyrian-*.ilk
@@ -34,3 +31,6 @@ tyrian.sav
 
 # Doxygen output
 /doc/doxygen/
+
+# Release build scripts output (make_macos.sh, make_linux.sh)
+/build/
