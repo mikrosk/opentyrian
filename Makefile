@@ -1,29 +1,42 @@
 # BUILD SETTINGS ###############################################################
 
+# UNIX, WIN32 or ATARI (cross-compiled with m68k-atari-mintelf-gcc)
 ifneq ($(filter Msys Cygwin, $(shell uname -o)), )
-    PLATFORM := WIN32
+    PLATFORM ?= WIN32
+else
+    PLATFORM ?= UNIX
+endif
+
+ifeq ($(PLATFORM), WIN32)
     TYRIAN_DIR = C:\\TYRIAN
 else
-    #PLATFORM := UNIX
-    PLATFORM := ATARI
     TYRIAN_DIR = $(gamesdir)/tyrian
 endif
 
 # true, false, or auto (true if pkg-config can find SDL_net)
-WITH_NETWORK := false
+ifeq ($(PLATFORM), ATARI)
+    WITH_NETWORK := false
+else
+    WITH_NETWORK ?= auto
+endif
 
 ################################################################################
 
 # see https://www.gnu.org/prep/standards/html_node/Makefile-Conventions.html
 
-CPU := -m68020-60
-#CPU := -mcpu=5475
-
 SHELL = /bin/sh
 
-CC := m68k-atari-mintelf-gcc
+ifeq ($(PLATFORM), ATARI)
+    # -m68020-60 (Falcon/TT) or -mcpu=5475 (FireBee)
+    CPU ?= -m68020-60
+    CC := m68k-atari-mintelf-gcc
+    # the wrapper picks the multilib from CFLAGS
+    PKG_CONFIG ?= CFLAGS="$(CPU)" m68k-atari-mintelf-pkg-config
+else
+    CC ?= gcc
+    PKG_CONFIG ?= pkg-config
+endif
 INSTALL ?= install
-PKG_CONFIG ?= m68k-atari-mintelf-pkg-config
 WINDRES ?= windres
 
 VCS_IDREV ?= (git describe --tags || git rev-parse --short HEAD)
@@ -50,8 +63,11 @@ gamesdir ?= $(datadir)/games
 
 ###
 
-TARGET := opentyrian.gtp
+TARGET := opentyrian
 RES :=
+ifeq ($(PLATFORM), ATARI)
+    TARGET := opentyrian.gtp
+endif
 ifeq ($(PLATFORM), WIN32)
     TARGET := opentyrian.exe
     # The icon, from the same resource script the Visual Studio build uses.
@@ -95,9 +111,14 @@ CFLAGS ?= -pedantic \
           -Wextra \
           $(WNO_FORMAT_TRUNCATION) \
           -Wno-missing-field-initializers \
-          -O2 -fomit-frame-pointer $(CPU)
-LDFLAGS ?= -s -Wl,--msuper-memory -Wl,--stack,256k $(CPU)
+          -O2
+LDFLAGS ?=
 LDLIBS ?=
+
+ifeq ($(PLATFORM), ATARI)
+    CFLAGS += -fomit-frame-pointer $(CPU)
+    LDFLAGS += -s -Wl,--msuper-memory -Wl,--stack,256k $(CPU)
+endif
 
 ifeq ($(WITH_NETWORK), true)
     SDL_CPPFLAGS := $(shell $(PKG_CONFIG) sdl SDL_net --cflags)

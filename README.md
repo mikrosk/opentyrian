@@ -51,6 +51,11 @@ play, SDL_net 1.2.
 
 Network play is enabled automatically when SDL_net is found.
 
+For Atari, with the `m68k-atari-mintelf` toolchain:
+
+    make PLATFORM=ATARI                  # Falcon/TT
+    make PLATFORM=ATARI CPU=-mcpu=5475   # FireBee
+
 A Visual Studio solution is provided in `visualc/`.
 
 ## Command-Line Options
