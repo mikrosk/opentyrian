@@ -1,0 +1,80 @@
+name: Atari
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: write        # needed to attach assets on release events
+
+jobs:
+  build:
+    name: Atari (${{ matrix.title }})
+    runs-on: ubuntu-24.04
+    container:
+      image: scummvm/dockerized-toolchains:atari
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { title: Falcon,  name: falcon,  cpu: -m68020-60 }
+          - { title: FireBee, name: firebee, cpu: -mcpu=5475 }
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # git describe --tags for the version string
+      - name: Mark the checkout as safe for git describe
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      # the image exports its own CFLAGS/LDFLAGS, which would replace the Makefile's
+      - name: Compile check (debug, -Werror)
+        run: |
+          unset CFLAGS CXXFLAGS LDFLAGS
+          make -j"$(nproc)" PLATFORM=ATARI CPU="${{ matrix.cpu }}" debug
+      - name: Build (release)
+        run: |
+          unset CFLAGS CXXFLAGS LDFLAGS
+          make PLATFORM=ATARI clean
+          make -j"$(nproc)" PLATFORM=ATARI CPU="${{ matrix.cpu }}"
+      - name: Cache game data
+        uses: actions/cache@v6
+        with:
+          path: data
+          key: tyrian21-data-v1
+      - name: Fetch game data
+        run: ./get_data.sh data
+      - name: Package (program + game data)
+        run: |
+          mkdir -p dist/opentyrian/licenses
+          cp opentyrian.gtp dist/opentyrian/
+          cp -r data dist/opentyrian/data
+          cp doc/atari.txt dist/opentyrian/atari.txt
+          cp README.md dist/opentyrian/README.md
+          cp COPYING dist/opentyrian/COPYING.txt
+          cp doc/tyrian-freeware-license.txt dist/opentyrian/licenses/Tyrian.txt
+          curl -fsSL -o dist/opentyrian/licenses/SDL1.txt \
+            https://raw.githubusercontent.com/libsdl-org/SDL-1.2/main/COPYING
+          curl -fsSL -o dist/opentyrian/README.SDL \
+            https://raw.githubusercontent.com/libsdl-org/SDL-1.2/main/README.MiNT
+          # text files use CR/LF line endings, as TOS text viewers expect
+          cd dist/opentyrian
+          for f in atari.txt README.md README.SDL COPYING.txt licenses/*.txt; do
+            sed -i 's/\r*$/\r/' "$f"
+          done
+          cd .. && zip -r "../opentyrian-${{ matrix.name }}.zip" opentyrian
+      - uses: actions/upload-artifact@v7
+        with:
+          archive: false
+          path: opentyrian-${{ matrix.name }}.zip
+      - name: Attach to release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          apt-get update && apt-get install -y --no-install-recommends gh
+          tag="${{ github.event.release.tag_name }}"
+          asset="opentyrian-$tag-${{ matrix.name }}.zip"
+          mv "opentyrian-${{ matrix.name }}.zip" "$asset"
+          gh release upload "$tag" "$asset" --clobber
