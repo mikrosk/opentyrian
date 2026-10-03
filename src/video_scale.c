@@ -73,8 +73,24 @@ void no_scale(SDL_Surface *src_surface, SDL_Surface *dst_surface)
 {
 	Uint8 *src = src_surface->pixels;
 	Uint8 *dst = dst_surface->pixels;
+	const int src_pitch = src_surface->pitch;
+	const int dst_pitch = dst_surface->pitch;
 	
-	memcpy(dst, src, src_surface->pitch * src_surface->h);
+	if (src_pitch == dst_pitch)
+	{
+		memcpy(dst, src, (size_t)src_pitch * src_surface->h);
+	}
+	else
+	{
+		// the pitches differ when the video mode is wider than the scaler output,
+		// so the image cannot be copied as one block
+		for (int y = src_surface->h; y > 0; y--)
+		{
+			memcpy(dst, src, src_pitch);
+			src += src_pitch;
+			dst += dst_pitch;
+		}
+	}
 }
 
 void nn_32(SDL_Surface *src_surface, SDL_Surface *dst_surface)
