@@ -97,7 +97,10 @@ bool findDataFiles(void)
 	const char *dataDirPaths[] =
 	{
 		baseDataDirPath,
-#ifdef TYRIAN_DIR
+#if defined(TARGET_ATARI)
+		"tyrian21",  // folder of the extracted freeware zip
+		"data",  // TOS cannot locate the executable, so relative to cwd
+#elif defined(TYRIAN_DIR)
 		TYRIAN_DIR,
 #endif
 	};
@@ -212,7 +215,7 @@ static void determineUserDirPath(void)
 		snprintf(userDirPath, userDirPathSize, "%s/OpenTyrian", appData);
 		return;
 	}
-#else
+#elif !defined(TARGET_ATARI)
 	const char *xdgConfigHome = getenv("XDG_CONFIG_HOME");
 	if (xdgConfigHome != NULL)
 	{

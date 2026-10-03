@@ -38,6 +38,10 @@ the following locations, searched in order:
    (`/usr/local/share/games/tyrian` by default; `C:\TYRIAN` on Windows)
 4. the current directory
 
+On Atari, the `tyrian21` folder from the archive is searched in the current
+directory (normally the one with the program) instead of the system directory,
+before `data`.
+
 ## Building
 
 Requirements: a C99 compiler, GNU make, pkg-config, SDL 1.2, and, for network

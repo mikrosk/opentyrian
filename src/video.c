@@ -92,6 +92,33 @@ void toggle_fullscreen(void)
 	}
 }
 
+#if defined(TARGET_ATARI)
+// SDL_VideoModeOK() demands an exact size match unless the driver handles any
+// size. SDL_SetVideoMode() itself picks the closest larger mode and centres
+// the requested surface in it, so any listed mode at least as large will do.
+static int video_mode_ok(int w, int h, int bpp, Uint32 flags)
+{
+	SDL_PixelFormat format;
+	memset(&format, 0, sizeof(format));
+	format.BitsPerPixel = bpp;
+
+	SDL_Rect **modes = SDL_ListModes(&format, flags);
+
+	if (modes == NULL)
+		return 0;
+	if (modes == (SDL_Rect **)-1)
+		return bpp;
+
+	for (int i = 0; modes[i] != NULL; ++i)
+		if (modes[i]->w >= w && modes[i]->h >= h)
+			return bpp;
+
+	return 0;
+}
+#else
+#define video_mode_ok SDL_VideoModeOK
+#endif
+
 int can_init_scaler(unsigned int new_scaler, bool fullscreen)
 {
 	if (new_scaler >= scalers_count)
@@ -99,12 +126,17 @@ int can_init_scaler(unsigned int new_scaler, bool fullscreen)
 
 	int w = scalers[new_scaler].width;
 	int h = scalers[new_scaler].height;
-	int flags = SDL_SWSURFACE | SDL_HWPALETTE | (fullscreen ? SDL_FULLSCREEN : 0);
+	int flags = SDL_HWSURFACE | SDL_DOUBLEBUF | (fullscreen ? SDL_FULLSCREEN : 0);
 
 	// test each bitdepth
+#if defined(TARGET_ATARI)
+	// prefer the lowest depth: an 8 bpp mode writes the least to video memory
+	for (uint bpp = 8; bpp <= 32; bpp += 8)
+#else
 	for (uint bpp = 32; bpp > 0; bpp -= 8)
+#endif
 	{
-		uint temp_bpp = SDL_VideoModeOK(w, h, bpp, flags);
+		uint temp_bpp = video_mode_ok(w, h, bpp, flags | (bpp == 8 ? SDL_HWPALETTE : 0));
 
 		if ((temp_bpp == 32 && scalers[new_scaler].scaler32) ||
 		    (temp_bpp == 16 && scalers[new_scaler].scaler16) ||
@@ -128,7 +160,11 @@ bool init_scaler(unsigned int new_scaler, bool fullscreen)
 	int w = scalers[new_scaler].width;
 	int h = scalers[new_scaler].height;
 	int bpp = can_init_scaler(new_scaler, fullscreen);
-	int flags = SDL_SWSURFACE | SDL_HWPALETTE | (fullscreen ? SDL_FULLSCREEN : 0);
+	// a hardware palette is only meaningful for an 8 bpp surface; asking for one
+	// at a higher depth makes SDL interpose a shadow surface that costs a full
+	// frame copy per flip and buys nothing, since the scalers convert palette
+	// indices to true colour themselves
+	int flags = SDL_HWSURFACE | SDL_DOUBLEBUF | (bpp == 8 ? SDL_HWPALETTE : 0) | (fullscreen ? SDL_FULLSCREEN : 0);
 
 	if (bpp == 0)
 		return false;
@@ -144,6 +180,7 @@ bool init_scaler(unsigned int new_scaler, bool fullscreen)
 	w = surface->w;
 	h = surface->h;
 	bpp = surface->format->BitsPerPixel;
+	fullscreen = (surface->flags & SDL_FULLSCREEN) != 0;
 
 	logInfo("Initialized %s video mode %dx%dx%d.", fullscreen ? "fullscreen" : "windowed", w, h, bpp);
 
@@ -152,6 +189,8 @@ bool init_scaler(unsigned int new_scaler, bool fullscreen)
 
 	last_output_rect.w = w;
 	last_output_rect.h = h;
+
+	mark_palette_changed();
 
 	switch (bpp)
 	{
@@ -174,9 +213,6 @@ bool init_scaler(unsigned int new_scaler, bool fullscreen)
 		assert(false);
 		return false;
 	}
-
-	if (bpp == 8)
-		SDL_SetColors(surface, palette, 0, 256);
 
 	JE_showVGA();
 
@@ -220,9 +256,23 @@ static void scale_and_flip(SDL_Surface *src_surface)
 
 	// Do software scaling
 	assert(scaler_function != NULL);
+	
+	// the surface carries a non-zero offset when the video mode is larger than
+	// the scaler output and SDL centres it, so it must be locked before its
+	// pixel pointer is used
+	const bool must_lock = SDL_MUSTLOCK(dst_surface);
+	
+	if (must_lock && SDL_LockSurface(dst_surface) == -1)
+		return;
+	
 	scaler_function(src_surface, dst_surface);
 
+	if (must_lock)
+		SDL_UnlockSurface(dst_surface);
+
 	SDL_Flip(dst_surface);
+	
+	apply_palette();
 }
 
 /** Maps a specified point in game screen coordinates to window coordinates. */
