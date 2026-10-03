@@ -31,6 +31,7 @@ bool lds_load(const void *data, size_t size);
 void lds_free(void);
 void lds_rewind(void);
 void lds_fade(Uint8 speed);
+void lds_keyoff(void);
 
 /*unsigned int getorders() { return numposi; }
 unsigned int getorder() { return posplay; }

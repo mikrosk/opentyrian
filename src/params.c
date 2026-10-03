@@ -58,6 +58,10 @@ void JE_paramCheck(int argc, char *argv[])
 		{ 'p', 'p', "net-port",          true },
 		{ 'd', 'd', "net-delay",         true },
 		
+#if defined(WITH_NFM)
+		{ 258, 0,   "opl",               true },
+#endif
+		
 		{ 'X', 'X', "xmas",              false },
 		{ 'c', 'c', "constant",          false },
 		{ 'k', 'k', "death",             false },
@@ -100,6 +104,11 @@ void JE_paramCheck(int argc, char *argv[])
 			logInfo("                               (1 or 2)");
 			logInfo("  -p, --net-port=PORT          Set local port to bind (default is 1333)");
 			logInfo("  -d, --net-delay=FRAMES       Set lag-compensation delay (default is 1)");
+#if defined(WITH_NFM)
+			logInfo("  --opl=DEVICE                 Set the device that plays the music:");
+			for (size_t i = 0; i < music_device_count(); ++i)
+				logInfo("                               %-10s (%s)", music_device_id(i), music_device_name(i));
+#endif
 			exit(EXIT_SUCCESS);
 			break;
 			
@@ -190,6 +199,19 @@ void JE_paramCheck(int argc, char *argv[])
 			}
 			break;
 		}
+#if defined(WITH_NFM)
+		case 258: // --opl
+		{
+			size_t device;
+			if (!find_music_device(option.arg, &device))
+			{
+				logError("%s: unknown OPL device '%s'", argv[0], option.arg);
+				exit(EXIT_FAILURE);
+			}
+			set_music_device(device);
+			break;
+		}
+#endif
 		case 'X':
 			xmas = true;
 			break;
