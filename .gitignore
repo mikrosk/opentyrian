@@ -35,3 +35,8 @@ tyrian.sav
 
 # Doxygen output
 /doc/doxygen/
+
+# Atari build output
+/ot_*.gtp
+/dist/
+/opentyrian.zip

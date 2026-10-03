@@ -38,14 +38,28 @@ the following locations, searched in order:
    (`/usr/local/share/games/tyrian` by default; `C:\TYRIAN` on Windows)
 4. the current directory
 
+On Atari, the `tyrian21` folder from the archive is searched in the current
+directory (normally the one with the program) instead of the system directory,
+before `data`.
+
 ## Building
 
 Requirements: a C99 compiler, GNU make, pkg-config, SDL 1.2, and, for network
 play, SDL_net 1.2.
 
-    make
+    make PLATFORM=UNIX
 
 Network play is enabled automatically when SDL_net is found.
+
+For Atari, with the `m68k-atari-mintelf` toolchain (the default platform
+outside Windows); SDL must be built for the `-mfastcall` multilibs:
+
+    make            # ot_020.gtp (68020-68060) and ot_cf.gtp (ColdFire)
+    make 020        # ot_020.gtp only
+    make cf         # ot_cf.gtp only
+    make 020_dist   # ot_020.gtp, game data and docs in dist/opentyrian
+    make cf_dist    # ot_cf.gtp, game data and docs in dist/opentyrian
+    make dist       # both of the above, zipped into opentyrian.zip
 
 A Visual Studio solution is provided in `visualc/`.
 

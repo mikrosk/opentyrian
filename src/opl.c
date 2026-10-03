@@ -25,6 +25,8 @@
  */
 #include "opl.h"
 
+#include "loudness.h"
+
 #include <math.h>
 #include <stdbool.h>
 #include <stdlib.h> // rand()
@@ -1074,15 +1076,15 @@ void adlib_write_index(Bitu port, Bit8u val) {
 #endif
 }
 
-OPL_INLINE static void clipit16(Bit32s ival, Bit16s* outval) {
+OPL_INLINE static Bit16s clipit16(Bit32s ival) {
 	if (ival<32768) {
 		if (ival>-32769) {
-			*outval=(Bit16s)ival;
+			return (Bit16s)ival;
 		} else {
-			*outval = -32768;
+			return -32768;
 		}
 	} else {
-		*outval = 32767;
+		return 32767;
 	}
 }
 
@@ -1600,20 +1602,30 @@ void adlib_getsample(Bit16s* sndptr, Bits numsamples) {
 		if (adlibreg[0x105]&1) {
 			// convert to 16bit samples (stereo)
 			for (i=0;i<endsamples;i++) {
-				clipit16(outbufl[i],sndptr++);
-				clipit16(outbufr[i],sndptr++);
+				*sndptr++ = clipit16(outbufl[i]);
+				*sndptr++ = clipit16(outbufr[i]);
 			}
 		} else {
 			// convert to 16bit samples (mono)
 			for (i=0;i<endsamples;i++) {
-				clipit16(outbufl[i],sndptr++);
-				clipit16(outbufl[i],sndptr++);
+				Bit16s sample = clipit16(outbufl[i]);
+				*sndptr++ = sample;
+				*sndptr++ = sample;
 			}
+		}
+#else
+#if OUTPUT_CHANNELS == 2
+		// convert to 16bit samples (same value in both channels)
+		for (i=0;i<endsamples;i++) {
+			Bit16s sample = clipit16(outbufl[i]);
+			*sndptr++ = sample;
+			*sndptr++ = sample;
 		}
 #else
 		// convert to 16bit samples
 		for (i=0;i<endsamples;i++)
-			clipit16(outbufl[i],sndptr++);
+			*sndptr++ = clipit16(outbufl[i]);
+#endif
 #endif
 
 	}

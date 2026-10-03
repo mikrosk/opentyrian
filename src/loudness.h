@@ -21,6 +21,14 @@
 
 #include "opentyr.h"
 
+#if defined(TARGET_ATARI)
+#define OUTPUT_QUALITY 1  // 11.025 kHz
+#define OUTPUT_CHANNELS 2  // Falcon and FireBee have no 16-bit mono
+#else
+#define OUTPUT_QUALITY 4  // 44.1 kHz
+#define OUTPUT_CHANNELS 1
+#endif
+
 extern int audioSampleRate;
 
 extern unsigned int song_playing;

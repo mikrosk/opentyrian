@@ -1,0 +1,34 @@
+OpenTyrian SDL port
+===================
+
+Back in 2010 I did a port of OT without really doing anything special. Then
+there were ports by insane/.tSCc.: https://insane.tscc.de in 2014 and by
+medmed: https://www.atari-forum.com/viewtopic.php?t=43217 in 2023 but again
+without anything more interesting than updating the game source code and
+linking against a newer SDL build.
+
+So when I was testing my latest SDL changes and released HHexen / HHeretic in
+2024, there was nothing to be done for OpenTyrian. Well, until now.
+
+So what I have done you ask? Exactly what I promised in my HHexen / HHeretic
+release: I have updated OpenTyrian's sdl1 branch from 2020 with all non-SDL2
+commits up to the latest one!
+
+And of course fixed heaps of SDL bugs. :)
+
+I think you will notice many improvements straight away.
+
+I'm hoping that upstream would accept my changes to 'sdl1' branch. In the
+meantime you can use my github project's repo for downloads and news:
+https://github.com/mikrosk/opentyrian.
+
+Music is disabled but available, just re-enable it in the Sound setup.
+Networking is disabled so far, it uses SDL_net so OpenTyrian code would require
+backporting to SDL_net 1.2 API.
+
+Also read README.SDL because it provides useful info about video, audio and
+input drivers.
+
+Miro Kropacek aka MiKRO,
+29.09.2026,
+Brisbane / Australia

@@ -1,15 +1,29 @@
 # BUILD SETTINGS ###############################################################
 
+# UNIX, WIN32 or ATARI (cross-compiled with m68k-atari-mintelf-gcc)
 ifneq ($(filter Msys Cygwin, $(shell uname -o)), )
-    PLATFORM := WIN32
+    PLATFORM ?= WIN32
+else
+    PLATFORM ?= ATARI
+endif
+
+# ATARI only: 020 (68020-68060: TT, Falcon, CT60) or cf (ColdFire: FireBee);
+# empty builds all of them
+ATARI_TARGETS := 020 cf
+ATARI_TARGET ?=
+
+ifeq ($(PLATFORM), WIN32)
     TYRIAN_DIR = C:\\TYRIAN
 else
-    PLATFORM := UNIX
     TYRIAN_DIR = $(gamesdir)/tyrian
 endif
 
 # true, false, or auto (true if pkg-config can find SDL_net)
-WITH_NETWORK := auto
+ifeq ($(PLATFORM), ATARI)
+    WITH_NETWORK := false
+else
+    WITH_NETWORK ?= auto
+endif
 
 ################################################################################
 
@@ -17,9 +31,67 @@ WITH_NETWORK := auto
 
 SHELL = /bin/sh
 
-CC ?= gcc
+ifeq ($(PLATFORM)-$(ATARI_TARGET), ATARI-)
+
+# Each Atari target links against its own multilib (with its own SDL flags),
+# so every target is built by a separate make invocation.
+
+DISTDIR := dist/opentyrian
+SDL_URL := https://raw.githubusercontent.com/libsdl-org/SDL-1.2/main
+
+.PHONY : all clean dist dist_common $(ATARI_TARGETS) $(ATARI_TARGETS:%=%_dist)
+
+all : $(ATARI_TARGETS)
+
+clean :
+	rm -rf obj dist
+	rm -f $(ATARI_TARGETS:%=ot_%.gtp) opentyrian.zip
+
+$(ATARI_TARGETS) :
+	$(MAKE) ATARI_TARGET=$@
+
+# Text files get CR/LF line endings, as TOS text viewers expect.
+dist_common :
+	./get_data.sh data
+	mkdir -p $(DISTDIR)/licenses
+	cp -r data $(DISTDIR)/
+	cp doc/atari.txt $(DISTDIR)/atari.txt
+	cp README.md $(DISTDIR)/README.md
+	cp COPYING $(DISTDIR)/COPYING.txt
+	cp doc/tyrian-freeware-license.txt $(DISTDIR)/licenses/Tyrian.txt
+	curl -fsSL -o $(DISTDIR)/licenses/SDL1.txt $(SDL_URL)/COPYING
+	curl -fsSL -o $(DISTDIR)/README.SDL $(SDL_URL)/README.MiNT
+	for f in atari.txt README.md README.SDL COPYING.txt licenses/SDL1.txt licenses/Tyrian.txt; do \
+		sed -i 's/\r*$$/\r/' "$(DISTDIR)/$$f"; \
+	done
+
+$(ATARI_TARGETS:%=%_dist) : %_dist : % dist_common
+	cp ot_$*.gtp $(DISTDIR)/
+
+dist : $(ATARI_TARGETS:%=%_dist)
+	rm -f opentyrian.zip
+	cd dist && zip -r ../opentyrian.zip opentyrian
+
+else # a single target (any platform)
+
+ifeq ($(PLATFORM), ATARI)
+    ifeq ($(ATARI_TARGET), 020)
+        CPU := -m68020-60 -mtune=68060
+    else ifeq ($(ATARI_TARGET), cf)
+        CPU := -mcpu=5475
+    else
+        $(error Unknown ATARI_TARGET '$(ATARI_TARGET)', use one of: $(ATARI_TARGETS))
+    endif
+    # changes the ABI: SDL must be built for the same multilib
+    CPU += -mfastcall
+    CC := m68k-atari-mintelf-gcc
+    # the wrapper picks the multilib from CFLAGS
+    PKG_CONFIG ?= CFLAGS="$(CPU)" m68k-atari-mintelf-pkg-config
+else
+    CC ?= gcc
+    PKG_CONFIG ?= pkg-config
+endif
 INSTALL ?= install
-PKG_CONFIG ?= pkg-config
 WINDRES ?= windres
 
 VCS_IDREV ?= (git describe --tags || git rev-parse --short HEAD)
@@ -47,16 +119,21 @@ gamesdir ?= $(datadir)/games
 ###
 
 TARGET := opentyrian
+OBJDIR := obj
 RES :=
+ifeq ($(PLATFORM), ATARI)
+    TARGET := ot_$(ATARI_TARGET).gtp
+    OBJDIR := obj/$(ATARI_TARGET)
+endif
 ifeq ($(PLATFORM), WIN32)
     TARGET := opentyrian.exe
     # The icon, from the same resource script the Visual Studio build uses.
-    RES := obj/resources.o
+    RES := $(OBJDIR)/resources.o
 endif
 
 SRCS := $(wildcard src/*.c)
-OBJS := $(SRCS:src/%.c=obj/%.o)
-DEPS := $(SRCS:src/%.c=obj/%.d)
+OBJS := $(SRCS:src/%.c=$(OBJDIR)/%.o)
+DEPS := $(SRCS:src/%.c=$(OBJDIR)/%.d)
 
 ###
 
@@ -94,6 +171,11 @@ CFLAGS ?= -pedantic \
           -O2
 LDFLAGS ?=
 LDLIBS ?=
+
+ifeq ($(PLATFORM), ATARI)
+    CFLAGS += -fomit-frame-pointer $(CPU)
+    LDFLAGS += -s -Wl,--msuper-memory -Wl,--stack,256k $(CPU)
+endif
 
 ifeq ($(WITH_NETWORK), true)
     SDL_CPPFLAGS := $(shell $(PKG_CONFIG) sdl SDL_net --cflags)
@@ -178,10 +260,12 @@ $(TARGET) : $(OBJS) $(RES)
 
 -include $(DEPS)
 
-obj/%.o : src/%.c
+$(OBJDIR)/%.o : src/%.c
 	@mkdir -p "$(dir $@)"
 	$(CC) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c -o $@ $<
 
-obj/resources.o : visualc/resources.rc visualc/tyrian.ico
+$(OBJDIR)/resources.o : visualc/resources.rc visualc/tyrian.ico
 	@mkdir -p "$(dir $@)"
 	$(WINDRES) --include-dir visualc -i $< -o $@
+
+endif # a single target
