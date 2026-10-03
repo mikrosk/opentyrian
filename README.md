@@ -52,7 +52,8 @@ play, SDL_net 1.2.
 Network play is enabled automatically when SDL_net is found.
 
 For Atari, with the `m68k-atari-mintelf` toolchain (the default platform
-outside Windows); SDL must be built for the `-mfastcall` multilibs:
+outside Windows); SDL (and nFM, if used) must be built for the `-mfastcall`
+multilibs:
 
     make            # ot_020.gtp (68020-68060) and ot_cf.gtp (ColdFire)
     make 020        # ot_020.gtp only

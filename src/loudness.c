@@ -42,6 +42,14 @@ bool audio_disabled = false, music_disabled = true, samples_disabled = false;
 bool audio_disabled = false, music_disabled = false, samples_disabled = false;
 #endif
 
+#if defined(WITH_NFM)
+size_t music_device = 1 + NFM_OPL_DEFAULT_DEVICE;
+#else
+size_t music_device = 0;
+#endif
+
+static bool audioOpen = false;
+
 static Uint8 musicVolume = 255;
 static Uint8 sampleVolume = 255;
 
@@ -75,6 +83,13 @@ static Uint8 channelVolume[CHANNEL_COUNT];
 #define CHANNEL_VOLUME_LEVELS 8
 
 static void audioCallback(void *userdata, Uint8 *stream, int size);
+
+// Set while the main thread changes the music player state.
+static volatile bool ldsBusy = false;
+
+#if defined(WITH_NFM)
+static void ldsTick(void);
+#endif
 
 static const char *audioFormatName(Uint16 format)
 {
@@ -165,10 +180,128 @@ bool init_audio(void)
 
 	opl_init();
 
+#if defined(WITH_NFM)
+	if (music_device > 0)
+	{
+		if (nfm_opl_init(music_device - 1, ldsTick))
+			opl_init();
+		else
+			music_device = 0;
+	}
+#endif
+
+#if defined(TARGET_ATARI)
+	// The emulator is too slow for most Atari machines.
+	music_disabled = !nfm_opl_active;
+#endif
+
+	audioOpen = true;
+
 	SDL_PauseAudio(0); // unpause
 
 	return true;
 }
+
+size_t music_device_count(void)
+{
+#if defined(WITH_NFM)
+	return 1 + nfm_opl_device_count();
+#else
+	return 1;
+#endif
+}
+
+const char *music_device_id(size_t device)
+{
+#if defined(WITH_NFM)
+	if (device > 0)
+		return nfm_opl_device_id(device - 1);
+#else
+	(void)device;
+#endif
+	return "dosbox";
+}
+
+const char *music_device_name(size_t device)
+{
+#if defined(WITH_NFM)
+	if (device > 0)
+		return nfm_opl_device_name(device - 1);
+#else
+	(void)device;
+#endif
+	return "DOSBox OPL";
+}
+
+bool find_music_device(const char *id, size_t *device)
+{
+	for (size_t i = 0; i < music_device_count(); ++i)
+	{
+		if (strcmp(id, music_device_id(i)) == 0)
+		{
+			*device = i;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void set_music_device(size_t device)
+{
+	if (!audioOpen)
+	{
+		music_device = device;
+		return;
+	}
+
+	SDL_LockAudio();
+	ldsBusy = true;
+
+#if defined(WITH_NFM)
+	nfm_opl_deinit();
+
+	if (device > 0 && !nfm_opl_init(device - 1, ldsTick))
+		device = 0;
+#endif
+
+	music_device = device;
+
+	// The new device starts from a reset state, so the song has to be
+	// restarted to set up its registers.
+	if (music_stopped)
+		opl_init();
+	else
+		lds_rewind();
+
+	if (nfm_opl_active)
+		music_disabled = false;
+
+	ldsBusy = false;
+	SDL_UnlockAudio();
+}
+
+#if defined(WITH_NFM)
+// Called from a timer interrupt.
+static void ldsTick(void)
+{
+	static bool keyedOff = true;
+
+	if (ldsBusy)
+		return;
+
+	if (!music_disabled && !music_stopped)
+	{
+		lds_update();
+		keyedOff = false;
+	}
+	else if (!keyedOff)
+	{
+		lds_keyoff();
+		keyedOff = true;
+	}
+}
+#endif
 
 static void audioCallback(void *userdata, Uint8 *stream, int size)
 {
@@ -177,7 +310,7 @@ static void audioCallback(void *userdata, Uint8 *stream, int size)
 	Sint16 *const samples = (Sint16 *)stream;
 	const int samplesCount = size / (sizeof (Sint16) * OUTPUT_CHANNELS);
 
-	const bool musicPlaying = !music_disabled && !music_stopped;
+	const bool musicPlaying = !music_disabled && !music_stopped && !nfm_opl_active;
 
 	if (musicPlaying)
 	{
@@ -286,6 +419,12 @@ void deinit_audio(void)
 	SDL_PauseAudio(1); // pause
 	SDL_CloseAudio();
 
+#if defined(WITH_NFM)
+	nfm_opl_deinit();
+#endif
+
+	audioOpen = false;
+
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
 
 	memset(channelSampleCount, 0, sizeof channelSampleCount);
@@ -362,7 +501,11 @@ void play_song(unsigned int song_num)  // FKA NortSong.playSong
 
 		SDL_UnlockAudio();
 
+		ldsBusy = true;
+
 		load_song(song_num);
+
+		ldsBusy = false;
 
 		song_playing = song_num;
 	}
@@ -380,11 +523,13 @@ void restart_song(void)  // FKA Player.selectSong(1)
 		return;
 
 	SDL_LockAudio();
+	ldsBusy = true;
 
 	lds_rewind();
 
 	music_stopped = false;
 
+	ldsBusy = false;
 	SDL_UnlockAudio();
 }
 
@@ -406,9 +551,11 @@ void fade_song(void)  // FKA Player.selectSong($C001)
 		return;
 
 	SDL_LockAudio();
+	ldsBusy = true;
 
 	lds_fade(1);
 
+	ldsBusy = false;
 	SDL_UnlockAudio();
 }
 

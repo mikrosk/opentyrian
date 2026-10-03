@@ -46,8 +46,17 @@ void adlib_getsample(Bit16s* sndptr, Bits numsamples);
 Bitu adlib_reg_read(Bitu port);
 void adlib_write_index(Bitu port, Bit8u val);
 
+#if defined(WITH_NFM)
+#include "nfm_opl.h"
+
+#define opl_init() (nfm_opl_active ? nfm_opl_reset() : adlib_init(audioSampleRate))
+#define opl_write(reg, val) (nfm_opl_active ? nfm_opl_write(reg, val) : adlib_write(reg, val))
+#else
+#define nfm_opl_active false
+
 #define opl_init() adlib_init(audioSampleRate)
 #define opl_write(reg, val) adlib_write(reg, val)
+#endif
 #define opl_update(buf, num) adlib_getsample(buf, num)
 
 #endif /* OPL_H */

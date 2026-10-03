@@ -243,6 +243,12 @@ void lds_setregs_adv(Uint8 reg, Uint8 mask, Uint8 val)
 	lds_setregs(reg, (fmchip[reg] & mask) | val);
 }
 
+void lds_keyoff(void)
+{
+	for (int i = 0; i < 9; i++)
+		lds_setregs_adv(0xb0 + i, 0xdf, 0);
+}
+
 int lds_update(void)
 {
 	Uint16 comword, freq, octave, chan, tune, wibc, tremc, arpreg;

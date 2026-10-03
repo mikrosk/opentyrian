@@ -21,8 +21,10 @@ endif
 # true, false, or auto (true if pkg-config can find SDL_net)
 ifeq ($(PLATFORM), ATARI)
     WITH_NETWORK := false
+    WITH_NFM ?= auto
 else
     WITH_NETWORK ?= auto
+    WITH_NFM := false
 endif
 
 ################################################################################
@@ -33,8 +35,8 @@ SHELL = /bin/sh
 
 ifeq ($(PLATFORM)-$(ATARI_TARGET), ATARI-)
 
-# Each Atari target links against its own multilib (with its own SDL flags),
-# so every target is built by a separate make invocation.
+# Each Atari target links against its own multilib (with its own SDL and nFM
+# flags), so every target is built by a separate make invocation.
 
 DISTDIR := dist/opentyrian
 SDL_URL := https://raw.githubusercontent.com/libsdl-org/SDL-1.2/main
@@ -82,7 +84,7 @@ ifeq ($(PLATFORM), ATARI)
     else
         $(error Unknown ATARI_TARGET '$(ATARI_TARGET)', use one of: $(ATARI_TARGETS))
     endif
-    # changes the ABI: SDL must be built for the same multilib
+    # changes the ABI: SDL and nFM must be built for the same multilib
     CPU += -mfastcall
     CC := m68k-atari-mintelf-gcc
     # the wrapper picks the multilib from CFLAGS
@@ -150,6 +152,32 @@ ifeq ($(WITH_NETWORK), true)
     EXTRA_CPPFLAGS += -DWITH_NETWORK
 endif
 
+NFM_INCLUDEDIR := $(shell $(CC) -print-sysroot)/usr/include/nfm
+
+# nFM is not built for ColdFire
+ifneq ($(findstring 5475, $(CPU)), )
+    WITH_NFM := false
+endif
+
+ifeq ($(WITH_NFM), auto)
+    ifneq ($(wildcard $(NFM_INCLUDEDIR)/nfmcore.h), )
+        WITH_NFM := true
+    else
+        WITH_NFM := false
+        $(info nFM not found; building without OPL hardware support)
+    endif
+endif
+
+ifeq ($(WITH_NFM), true)
+    # nfmcore.h requires NFM_OPL_SHADOW_REG_WRITE_ENABLE to match the library
+    # build; -isystem because its headers are not -pedantic clean
+    EXTRA_CPPFLAGS += -DWITH_NFM \
+                      -DNFM_OPL_SHADOW_REG_WRITE_ENABLE=1 \
+                      -isystem $(NFM_INCLUDEDIR)
+    NFM_LDLIBS := -lnfmcore -ldrvnokturnfm -ldrvisasb -ldrvoplxlpt -ldrvopl3duo -ldrvopllcart \
+                  -ldrvopl3express -ldrvoplnull -ldrvcommon -lsyscore -lcontainers -lallocators -lm
+endif
+
 OPENTYRIAN_VERSION := $(shell $(VCS_IDREV) 2>/dev/null && \
                               touch src/opentyrian_version.h)
 ifneq ($(OPENTYRIAN_VERSION), )
@@ -198,6 +226,7 @@ ALL_LDFLAGS = $(SDL_LDFLAGS) \
               $(LDFLAGS)
 ALL_LDLIBS = -lm \
              $(SDL_LDLIBS) \
+             $(NFM_LDLIBS) \
              $(LDLIBS)
 
 ###

@@ -291,6 +291,18 @@ static void loadOpenTyrianConfig(void)
 			set_scaler_by_name(scaler);
 	}
 
+#if defined(WITH_NFM)
+	section = config_find_section(config, "audio", NULL);
+	if (section != NULL)
+	{
+		const char *deviceId;
+		size_t device;
+		if (config_get_string_option(section, "music_device", &deviceId) &&
+		    find_music_device(deviceId, &device))
+			set_music_device(device);
+	}
+#endif
+
 	section = config_find_section(config, "keyboard", NULL);
 	if (section != NULL)
 	{
@@ -320,6 +332,14 @@ static void saveOpenTyrianConfig(void)
 	config_set_bool_option(section, "fullscreen", fullscreen_enabled, NO_YES);
 	
 	config_set_string_option(section, "scaler", scalers[scaler].name);
+
+#if defined(WITH_NFM)
+	section = config_find_or_add_section(config, "audio", NULL);
+	if (section == NULL)
+		exit(EXIT_FAILURE);  // out of memory
+
+	config_set_string_option(section, "music_device", music_device_id(music_device));
+#endif
 
 	section = config_find_or_add_section(config, "keyboard", NULL);
 	if (section == NULL)
