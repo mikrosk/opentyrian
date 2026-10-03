@@ -85,6 +85,20 @@ static const char *getScalerPickerItem(size_t i, char *buffer, size_t bufferSize
 	return scalers[i].name;
 }
 
+#if defined(WITH_NFM)
+static size_t getMusicDevicePickerItemsCount(void)
+{
+	return music_device_count();
+}
+
+static const char *getMusicDevicePickerItem(size_t i, char *buffer, size_t bufferSize)
+{
+	(void)buffer, (void)bufferSize;
+
+	return music_device_name(i);
+}
+#endif
+
 void setupMenu(void)
 {
 	typedef enum
@@ -99,6 +113,7 @@ void setupMenu(void)
 		MENU_ITEM_SCALER,
 		MENU_ITEM_MUSIC_VOLUME,
 		MENU_ITEM_SOUND_VOLUME,
+		MENU_ITEM_MUSIC_DEVICE,
 	} MenuItemId;
 
 	typedef enum
@@ -150,6 +165,9 @@ void setupMenu(void)
 			.items = {
 				{ MENU_ITEM_MUSIC_VOLUME, "Music Volume", "Change volume with the left/right arrow keys." },
 				{ MENU_ITEM_SOUND_VOLUME, "Sound Volume", "Change volume with the left/right arrow keys." },
+#if defined(WITH_NFM)
+				{ MENU_ITEM_MUSIC_DEVICE, "Music Device:", "Change the device that plays the music.", getMusicDevicePickerItemsCount, getMusicDevicePickerItem },
+#endif
 				{ MENU_ITEM_DONE, "Done", "Return to the previous menu." },
 				{ -1 }
 			},
@@ -238,6 +256,10 @@ void setupMenu(void)
 
 			case MENU_ITEM_SCALER:
 				drawFontHvShadow(VGAScreen, xMenuItemValue, y, scalers[scaler].name, FONT_NORMAL, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
+				break;
+
+			case MENU_ITEM_MUSIC_DEVICE:
+				drawFontHvShadow(VGAScreen, xMenuItemValue, y, music_device_name(music_device), FONT_NORMAL, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
 				break;
 
 			case MENU_ITEM_MUSIC_VOLUME:
@@ -356,6 +378,7 @@ void setupMenu(void)
 									{
 									case MENU_ITEM_DISPLAY:
 									case MENU_ITEM_SCALER:
+									case MENU_ITEM_MUSIC_DEVICE:
 									{
 										action = true;
 										break;
@@ -553,6 +576,14 @@ void setupMenu(void)
 					pickerSelectedIndex = scaler;
 					break;
 				}
+				case MENU_ITEM_MUSIC_DEVICE:
+				{
+					JE_playSampleNum(S_CLICK);
+
+					currentPicker = selectedMenuItemId;
+					pickerSelectedIndex = music_device;
+					break;
+				}
 				case MENU_ITEM_MUSIC_VOLUME:
 				{
 					JE_playSampleNum(S_CLICK);
@@ -706,6 +737,12 @@ void setupMenu(void)
 							exit(EXIT_FAILURE);
 						}
 					}
+					break;
+				}
+				case MENU_ITEM_MUSIC_DEVICE:
+				{
+					if (pickerSelectedIndex != music_device)
+						set_music_device(pickerSelectedIndex);
 					break;
 				}
 				default:
