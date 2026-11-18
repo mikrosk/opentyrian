@@ -74,7 +74,7 @@ static void (*oldTimerBVector)(void);
 // Set while tickCallback() runs in supervisor mode from the interrupt.
 static volatile bool inTimerB = false;
 
-static __attribute__((interrupt)) void timerBInterrupt(void)
+static __attribute__((used)) void timerBTick(void)
 {
 	// With OPL2 write delays a tick can take ~1 ms. Clearing the in-service
 	// bit and lowering the IPL lets the keyboard and audio interrupts through
@@ -92,6 +92,31 @@ static __attribute__((interrupt)) void timerBInterrupt(void)
 
 	*MFP_IERA |= (1 << 0);
 }
+
+#if defined(__HAVE_68881__)
+void timerBInterrupt(void);
+__asm__(
+	"	.pushsection .text\n"
+	"	.even\n"
+	"timerBInterrupt:\n"
+	"	fsave	-(%sp)\n"
+	"	fmovem.x	%fp0-%fp2,-(%sp)\n"
+	"	fmovem.l	%fpcr/%fpsr/%fpiar,-(%sp)\n"
+	"	movem.l	%d0-%d2/%a0-%a1,-(%sp)\n"
+	"	jsr	timerBTick\n"
+	"	movem.l	(%sp)+,%d0-%d2/%a0-%a1\n"
+	"	fmovem.l	(%sp)+,%fpcr/%fpsr/%fpiar\n"
+	"	fmovem.x	(%sp)+,%fp0-%fp2\n"
+	"	frestore	(%sp)+\n"
+	"	rte\n"
+	"	.popsection\n"
+);
+#else
+static __attribute__((interrupt)) void timerBInterrupt(void)
+{
+	timerBTick();
+}
+#endif
 
 static void *enterSuper(void)
 {
